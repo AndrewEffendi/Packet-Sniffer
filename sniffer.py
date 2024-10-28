@@ -13,6 +13,9 @@ app = Flask(__name__)
 packet_data = []
 packet_detail = []
 
+# Initialize the start time at the beginning of your program
+start_time = time.time()  # Capture the start time
+
 # Helper functions for formatting and unpacking
 def mac_format(mac_raw):
     return ':'.join(map('{:02x}'.format, mac_raw))
@@ -127,9 +130,6 @@ def update_packet_detail(raw_data):
     # Append the current packet info to the list
     packet_detail.append('<br>'.join(packet_info))
 
-# Initialize the start time at the beginning of your program
-start_time = time.time()  # Capture the start time
-
 def update_packet_data(raw_data):
     dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
     packet_info = {}
@@ -152,6 +152,7 @@ def update_packet_data(raw_data):
         packet_info['source'] = src_ip
         packet_info['destination'] = target_ip
         packet_info['elapsed_time'] = elapsed_time 
+        packet_info['index'] = len(packet_data)
         update_packet_detail(raw_data)
 
     elif eth_proto == 0x0806:  # ARP
@@ -159,6 +160,7 @@ def update_packet_data(raw_data):
         packet_info['source'] = src_mac
         packet_info['destination'] = dest_mac
         packet_info['elapsed_time'] = elapsed_time 
+        packet_info['index'] = len(packet_data)
         update_packet_detail(raw_data)
     
     # Append the current packet info to the list
