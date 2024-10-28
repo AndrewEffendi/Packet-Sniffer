@@ -10,6 +10,7 @@ app = Flask(__name__)
 
 # Store packet data
 packet_data = []
+packet_detail = []
 
 # Helper functions for formatting and unpacking
 def mac_format(mac_raw):
@@ -61,7 +62,7 @@ def udp_segment(data):
     src_port, dest_port, length, checksum = struct.unpack('! H H H H', data[:8])
     return src_port, dest_port, length, checksum, data[8:]
 
-def update_packet_data(raw_data):
+def update_packet_detail(raw_data):
     dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
     packet_info = [
         f'<strong>Ethernet Frame:</strong>',
@@ -123,8 +124,36 @@ def update_packet_data(raw_data):
         packet_info.append(f'    - Target IP: {target_ip}')
 
     # Append the current packet info to the list
-    packet_data.append('<br>'.join(packet_info))
+    packet_detail.append('<br>'.join(packet_info))
 
+def update_packet_data(raw_data):
+    dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
+    packet_info = {}
+
+    # Initialize packet_info with source, destination, and protocol
+    if eth_proto == 0x0800:  # IPv4
+        version, header_length, ttl, proto, src_ip, target_ip, data = ipv4_packet(data)
+        
+        # Check protocol type
+        if proto == 1:  # ICMP
+            packet_info['protocol_name'] = 'ICMP'
+        elif proto == 6:  # TCP
+            packet_info['protocol_name'] = 'TCP'
+        elif proto == 17:  # UDP
+            packet_info['protocol_name'] = 'UDP'
+        
+        packet_info['source'] = src_ip
+        packet_info['destination'] = target_ip
+        packet_info['detail'] = update_packet_detail(raw_data)
+
+    elif eth_proto == 0x0806:  # ARP
+        packet_info['protocol_name'] = 'ARP'
+        packet_info['source'] = src_mac
+        packet_info['destination'] = dest_mac
+        packet_info['detail'] = update_packet_detail(raw_data)
+    
+    # Append the current packet info to the list
+    packet_data.append(packet_info)
 
 
 # Main sniffer function
@@ -155,7 +184,7 @@ def index():
 
 @app.route('/packets')
 def packets():
-    return jsonify({'packets': packet_data})
+    return jsonify({'packets': packet_data, 'details': packet_detail})
 
 # Argument parser to specify protocols and source IP filter
 def main():
