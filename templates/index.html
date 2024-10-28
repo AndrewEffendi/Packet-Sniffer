@@ -74,12 +74,13 @@
                 .then(response => response.json())
                 .then(data => {
                     packetData = data.packets; // Store packet data globally
-                    renderTable(packetData); // Render table with fetched data
+                    packetDetail = data.details // Store packet detail globally
+                    renderTable(packetData, packetDetail); // Render table with fetched data
                 });
         }
 
         // Render table with sorted packet data
-        function renderTable(data) {
+        function renderTable(data, detail) {
             const table = document.getElementById('packetsTable');
             table.innerHTML = ''; // Clear previous entries
 
@@ -106,7 +107,11 @@
                 
                 // Add click event listener to the row
                 row.addEventListener('click', () => {
-                    showPacketDetails(data.details[index]); // Show details in the modal
+                    if (detail && detail[index]) {
+                        showPacketDetails(detail[index]); 
+                    } else {
+                         console.error("No details found for packet at index:", index);
+                    }
                 });
             });
         }
