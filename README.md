@@ -13,7 +13,7 @@ A simple packet sniffer built using Python and Flask that captures and displays 
 
 - Python 3.x
 - Flask
-- Access to raw socket privileges (may require running with administrator/root privileges)
+- Access to raw socket privileges (may require running with administrator/root privileges or use `sudo`)
 
 ## Installation
 
@@ -32,7 +32,7 @@ A simple packet sniffer built using Python and Flask that captures and displays 
 Run the packet sniffer with the desired options:
 
    ```bash
-   python packet_sniffer.py [--protocols PROTOCOLS] [--src_ip SOURCE_IP]
+   sudo python packet_sniffer.py [--protocols PROTOCOLS] [--src_ip SOURCE_IP]
    ```
 ## Options
 
@@ -44,11 +44,11 @@ Run the packet sniffer with the desired options:
 To capture all protocols and filter by a specific source IP:
 
 ```bash
-python packet_sniffer.py --src_ip 192.168.1.10
+sudo python packet_sniffer.py --src_ip 192.168.1.10
 ```
 To capture only ICMP and TCP packets:
 ```bash
-python packet_sniffer.py --protocols icmp tcp
+sudo python packet_sniffer.py --protocols icmp tcp
 ```
 
 # Accessing the Web Interface
