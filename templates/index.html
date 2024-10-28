@@ -73,14 +73,14 @@
                     const table = document.getElementById('packetsTable');
                     table.innerHTML = ''; // Clear previous entries
 
-                    // Create table headers
+                    // Create table headers including the new Time column
                     const headerRow = table.insertRow();
-                    headerRow.innerHTML = `<th>No.</th><th>Source</th><th>Destination</th><th>Protocol</th>`;
+                    headerRow.innerHTML = `<th>No.</th><th>Time</th><th>Source</th><th>Destination</th><th>Protocol</th>`;
 
                     // Add packet data to the table
                     data.packets.forEach((packet, index) => {
                         const row = table.insertRow();
-                        row.innerHTML = `<td>${index + 1}</td><td>${packet.source}</td><td>${packet.destination}</td><td>${packet.protocol_name || 'N/A'}</td>`;
+                        row.innerHTML = `<td>${index + 1}</td><td>${packet.elapsed_time}</td><td>${packet.source}</td><td>${packet.destination}</td><td>${packet.protocol_name || 'N/A'}</td>`;
                         
                         // Add click event listener to the row
                         row.addEventListener('click', () => {

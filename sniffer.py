@@ -2,6 +2,7 @@ import argparse
 import socket
 import struct
 import textwrap
+import time
 from flask import Flask, render_template, render_template_string, jsonify
 import threading
 
@@ -126,11 +127,17 @@ def update_packet_detail(raw_data):
     # Append the current packet info to the list
     packet_detail.append('<br>'.join(packet_info))
 
+# Initialize the start time at the beginning of your program
+start_time = time.time()  # Capture the start time
+
 def update_packet_data(raw_data):
     dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
     packet_info = {}
 
-    # Initialize packet_info with source, destination, and protocol
+    # Calculate the elapsed time in seconds since the program started (6 d.p.)
+    elapsed_time = round(time.time() - start_time, 6)
+
+    # Initialize packet_info with source, destination, protocol, and elapsed time
     if eth_proto == 0x0800:  # IPv4
         version, header_length, ttl, proto, src_ip, target_ip, data = ipv4_packet(data)
         
@@ -144,17 +151,18 @@ def update_packet_data(raw_data):
         
         packet_info['source'] = src_ip
         packet_info['destination'] = target_ip
-        packet_info['detail'] = update_packet_detail(raw_data)
+        packet_info['elapsed_time'] = elapsed_time 
+        update_packet_detail(raw_data)
 
     elif eth_proto == 0x0806:  # ARP
         packet_info['protocol_name'] = 'ARP'
         packet_info['source'] = src_mac
         packet_info['destination'] = dest_mac
-        packet_info['detail'] = update_packet_detail(raw_data)
+        packet_info['elapsed_time'] = elapsed_time 
+        update_packet_detail(raw_data)
     
     # Append the current packet info to the list
     packet_data.append(packet_info)
-
 
 # Main sniffer function
 def sniff(protocols, src_ip_filter):
