@@ -2,7 +2,7 @@ import argparse
 import socket
 import struct
 import textwrap
-from flask import Flask, render_template_string, jsonify
+from flask import Flask, render_template, render_template_string, jsonify
 import threading
 
 # Initialize Flask app
@@ -151,47 +151,7 @@ def sniff(protocols, src_ip_filter):
 # Web route to display captured packets
 @app.route('/')
 def index():
-    return render_template_string('''
-        <html>
-        <head>
-            <title>Packet Sniffer</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    margin: 20px;
-                    background-color: #f4f4f4;
-                }
-                h1 {
-                    color: #333;
-                }
-                pre {
-                    background-color: #fff;
-                    border: 1px solid #ccc;
-                    padding: 10px;
-                    overflow-x: auto;
-                }
-                strong {
-                    color: #007bff;
-                }
-            </style>
-            <script>
-                function fetchPackets() {
-                    fetch('/packets')
-                        .then(response => response.json())
-                        .then(data => {
-                            const pre = document.getElementById('packets');
-                            pre.innerHTML = data.packets.join('<br><br>');
-                        });
-                }
-                setInterval(fetchPackets, 1000);  // Fetch every second
-            </script>
-        </head>
-        <body>
-            <h1>Captured Packets</h1>
-            <pre id="packets"></pre>
-        </body>
-        </html>
-    ''')
+    return render_template('index.html')
 
 @app.route('/packets')
 def packets():
