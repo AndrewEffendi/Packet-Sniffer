@@ -32,7 +32,7 @@ A simple packet sniffer built using Python and Flask that captures and displays 
 Run the packet sniffer with the desired options:
 
    ```bash
-   sudo python packet_sniffer.py [--protocols PROTOCOLS] [--src_ip SOURCE_IP]
+   sudo python sniffer.py [--protocols PROTOCOLS] [--src_ip SOURCE_IP]
    ```
 ## Options
 
@@ -41,14 +41,19 @@ Run the packet sniffer with the desired options:
 
 ## Example
 
+To capture all protocols from all source IP
+```bash
+sudo python sniffer.py
+```
+
 To capture all protocols and filter by a specific source IP:
 
 ```bash
-sudo python packet_sniffer.py --src_ip 192.168.1.10
+sudo python sniffer.py --src_ip 192.168.1.10
 ```
 To capture only ICMP and TCP packets:
 ```bash
-sudo python packet_sniffer.py --protocols icmp tcp
+sudo python sniffer.py --protocols icmp tcp
 ```
 
 # Accessing the Web Interface
