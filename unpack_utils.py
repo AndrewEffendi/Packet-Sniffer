@@ -42,8 +42,9 @@ def icmp_packet(data):
 # TCP segment unpacking
 def tcp_segment(data):
     (src_port, dest_port, sequence, acknowledgment, offset_reserved_flags) = struct.unpack('! H H L L H', data[:14])
-    offset = (offset_reserved_flags >> 12) * 4
-    return src_port, dest_port, sequence, acknowledgment, offset, data[offset:]
+    offset = (offset_reserved_flags >> 12) * 4  # Extract the offset (header length)
+    flags = offset_reserved_flags & 0x3F       # Extract the last 6 bits for flags
+    return src_port, dest_port, sequence, acknowledgment, offset, flags, data[offset:]
 
 # UDP segment unpacking
 def udp_segment(data):

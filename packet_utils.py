@@ -29,7 +29,7 @@ def build_packet_info(raw_data):
             packet_info.append('<pre>' + unpack_utils.format_multi_line(data.hex()) + '</pre>')
 
         elif proto == 6:  # TCP
-            src_port, dest_port, sequence, acknowledgment, offset, data = unpack_utils.tcp_segment(data)
+            src_port, dest_port, sequence, acknowledgment, offset, flags, data = unpack_utils.tcp_segment(data)
             packet_info.append(f'<strong>TCP Segment:</strong>')
             packet_info.append(f'    - Source Port: {src_port}')
             packet_info.append(f'    - Destination Port: {dest_port}')
