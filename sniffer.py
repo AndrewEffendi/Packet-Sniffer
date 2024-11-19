@@ -172,6 +172,34 @@ def update_packet_data(raw_data):
     # Append the current packet info to the list
     packet_data.append(packet_info)
 
+def write_pcap_global_header(file):
+    global_header = struct.pack(
+        'IHHIIII',
+        0xa1b2c3d4,  # Magic number
+        2,           # Version major
+        4,           # Version minor
+        0,           # GMT to local correction
+        0,           # Accuracy of timestamps
+        65535,       # Max length of captured packets
+        1            # Data link type (Ethernet)
+    )
+    file.write(global_header)
+
+def write_pcap_packet(file, timestamp, captured_data):
+    ts_sec = int(timestamp)
+    ts_usec = int((timestamp - ts_sec) * 1e6)
+    packet_len = len(captured_data)
+    
+    packet_header = struct.pack(
+        'IIII',
+        ts_sec,      # Timestamp seconds
+        ts_usec,     # Timestamp microseconds
+        packet_len,  # Captured length
+        packet_len   # Original length
+    )
+    file.write(packet_header)
+    file.write(captured_data)
+
 # Main sniffer function
 def sniff_packets(protocols, src_ip_filter, pcap_filename):
     global is_sniffing, src_ip, packet_type
@@ -180,7 +208,7 @@ def sniff_packets(protocols, src_ip_filter, pcap_filename):
     print(packet_type)
     
     with open(pcap_filename, "wb") as pcap_file:
-        #write_pcap_global_header(pcap_file)
+        write_pcap_global_header(pcap_file)
         print(f"Capturing packets and saving to {pcap_filename}.")
         
         try:
@@ -197,6 +225,7 @@ def sniff_packets(protocols, src_ip_filter, pcap_filename):
                     if (not protocols or proto in protocols) and (not src_ip_filter or src_ip == src_ip_filter):
                         print("IPv4")
                         update_packet_data(raw_data)
+                        write_pcap_packet(pcap_file, timestamp, raw_data)
 
                 # Parse ARP packets
                 elif eth_proto == 0x0806:  # ARP
@@ -204,8 +233,7 @@ def sniff_packets(protocols, src_ip_filter, pcap_filename):
                     if (2054 in protocols) and (not src_ip_filter or sender_ip == src_ip_filter):
                         print("arp")
                         update_packet_data(raw_data)
-
-                        #write_pcap_packet(pcap_file, timestamp, raw_data)
+                        write_pcap_packet(pcap_file, timestamp, raw_data)
         except Exception as e:
             print(f"Error: {e}")
         finally:
