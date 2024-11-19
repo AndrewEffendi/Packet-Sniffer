@@ -60,6 +60,11 @@ http://127.0.0.1:5000/
 wireshark <filename>.pcap
 ```
 
+## Threat Detection
+Right now It prints potential threats to console, (might change to UI if have time)
+- `Port Scanning`: Detects potential port scanning by monitoring SYN packets. If the number of unique destination ports from the same source IP exceeds a threshold (e.g., 20 unique ports) within a 10-second window, a port scan is flagged.
+- `SYN Flood`: Detects potential SYN flood attacks by monitoring the ratio of SYN packets to ACK packets from the same source IP. If the number of SYN packets exceeds 100 and is more than three times the number of ACK packets within a specified time window, a SYN flood is flagged.
+
 ## Code Structure
 ### Sniffer.py
 - `index()`: render the template/index.html
@@ -85,6 +90,9 @@ wireshark <filename>.pcap
 ### pacap_utils.py
 - `write_pcap_global_header()`: writes pcap header
 - `write_pcap_packet()`: writes pcap packet
+### threat_detection.py
+- `detect_port_scanning()`: Detects potential port scanning by monitoring SYN packets. If the number of unique destination ports from the same source IP exceeds a threshold (e.g., 20 unique ports) within a 10-second window, a port scan is flagged.
+- `detect_syn_flood()`: Detects potential SYN flood attacks by monitoring the ratio of SYN packets to ACK packets from the same source IP. If the number of SYN packets exceeds 100 and is more than three times the number of ACK packets within a specified time window, a SYN flood is flagged.
 
 ### static/js/scripts.js
 - `fetchPackets()`: fetch packet data and detail from sniffer.py
