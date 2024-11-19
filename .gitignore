@@ -1,2 +1,5 @@
 # ignore pcap file created by the app
 *.pcap
+
+# ignore pycache
+__pycache__

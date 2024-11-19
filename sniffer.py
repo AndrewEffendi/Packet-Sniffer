@@ -1,10 +1,12 @@
 import argparse
 import socket
-import struct
 import textwrap
 import time
 from flask import Flask, render_template, render_template_string, request, jsonify
 import threading
+
+import pcap_utils
+import unpack_utils
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -14,66 +16,14 @@ sniffing_thread = None
 is_sniffing = False
 src_ip = None  # Global variable to store the source IP
 packet_type = "all"  # Global variable to store the packet type (default: all)
+start_time = -1
 
 # Store packet data
 packet_data = []
 packet_detail = []
 
-# Initialize the start time at the beginning of your program
-start_time = time.time()  # Capture the start time
-
-# Helper functions for formatting and unpacking
-def mac_format(mac_raw):
-    return ':'.join(map('{:02x}'.format, mac_raw))
-
-def ipv4_format(ip_raw):
-    return '.'.join(map(str, ip_raw))
-
-def format_multi_line(data, size=80):
-    return '\n'.join([data[i:i + size] for i in range(0, len(data), size)])
-
-# Ethernet frame unpacking
-def ethernet_frame(data):
-    dest_mac, src_mac, proto = struct.unpack('! 6s 6s H', data[:14])
-    return mac_format(dest_mac), mac_format(src_mac), proto, data[14:]
-
-# IPv4 packet unpacking
-def ipv4_packet(data):
-    version_header_length = data[0]
-    version = version_header_length >> 4
-    header_length = (version_header_length & 15) * 4
-    ttl, proto, src, target = struct.unpack('! 8x B B 2x 4s 4s', data[:20])
-    src_ip = ipv4_format(src)
-    target_ip = ipv4_format(target)
-    return version, header_length, ttl, proto, src_ip, target_ip, data[header_length:]
-
-# ARP packet unpacking
-def arp_packet(data):
-    hw_type, proto_type, hw_size, proto_size, opcode = struct.unpack('! H H B B H', data[:8])
-    sender_mac = mac_format(data[8:14])
-    sender_ip = ipv4_format(data[14:18])
-    target_mac = mac_format(data[18:24])
-    target_ip = ipv4_format(data[24:28])
-    return hw_type, proto_type, hw_size, proto_size, opcode, sender_mac, sender_ip, target_mac, target_ip, data[28:]
-
-# ICMP packet unpacking
-def icmp_packet(data):
-    icmp_type, code, checksum = struct.unpack('! B B H', data[:4])
-    return icmp_type, code, checksum, data[4:]
-
-# TCP segment unpacking
-def tcp_segment(data):
-    (src_port, dest_port, sequence, acknowledgment, offset_reserved_flags) = struct.unpack('! H H L L H', data[:14])
-    offset = (offset_reserved_flags >> 12) * 4
-    return src_port, dest_port, sequence, acknowledgment, offset, data[offset:]
-
-# UDP segment unpacking
-def udp_segment(data):
-    src_port, dest_port, length, checksum = struct.unpack('! H H H H', data[:8])
-    return src_port, dest_port, length, checksum, data[8:]
-
 def update_packet_detail(raw_data):
-    dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
+    dest_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
     packet_info = [
         f'<strong>Ethernet Frame:</strong>',
         f'  - Destination MAC: {dest_mac}',
@@ -82,7 +32,7 @@ def update_packet_detail(raw_data):
     ]
     
     if eth_proto == 0x0800:  # IPv4
-        version, header_length, ttl, proto, src_ip, target_ip, data = ipv4_packet(data)
+        version, header_length, ttl, proto, src_ip, target_ip, data = unpack_utils.ipv4_packet(data)
         packet_info.append(f'<strong>IPv4 Packet:</strong>')
         packet_info.append(f'    - Version: {version}')
         packet_info.append(f'    - Header Length: {header_length}')
@@ -92,36 +42,36 @@ def update_packet_detail(raw_data):
         packet_info.append(f'    - Target IP: {target_ip}')
         
         if proto == 1:  # ICMP
-            icmp_type, code, checksum, data = icmp_packet(data)
+            icmp_type, code, checksum, data = unpack_utils.icmp_packet(data)
             packet_info.append(f'<strong>ICMP Packet:</strong>')
             packet_info.append(f'    - Type: {icmp_type}')
             packet_info.append(f'    - Code: {code}')
             packet_info.append(f'    - Checksum: {checksum}')
             packet_info.append('    - Data:')
-            packet_info.append('<pre>' + format_multi_line(data.hex()) + '</pre>')
+            packet_info.append('<pre>' + unpack_utils.format_multi_line(data.hex()) + '</pre>')
 
         elif proto == 6:  # TCP
-            src_port, dest_port, sequence, acknowledgment, offset, data = tcp_segment(data)
+            src_port, dest_port, sequence, acknowledgment, offset, data = unpack_utils.tcp_segment(data)
             packet_info.append(f'<strong>TCP Segment:</strong>')
             packet_info.append(f'    - Source Port: {src_port}')
             packet_info.append(f'    - Destination Port: {dest_port}')
             packet_info.append(f'    - Sequence: {sequence}')
             packet_info.append(f'    - Acknowledgment: {acknowledgment}')
             packet_info.append('    - Data:')
-            packet_info.append('<pre>' + format_multi_line(data.hex()) + '</pre>')
+            packet_info.append('<pre>' + unpack_utils.format_multi_line(data.hex()) + '</pre>')
 
         elif proto == 17:  # UDP
-            src_port, dest_port, length, checksum, data = udp_segment(data)
+            src_port, dest_port, length, checksum, data = unpack_utils.udp_segment(data)
             packet_info.append(f'<strong>UDP Segment:</strong>')
             packet_info.append(f'    - Source Port: {src_port}')
             packet_info.append(f'    - Destination Port: {dest_port}')
             packet_info.append(f'    - Length: {length}')
             packet_info.append(f'    - Checksum: {checksum}')
             packet_info.append('    - Data:')
-            packet_info.append('<pre>' + format_multi_line(data.hex()) + '</pre>')
+            packet_info.append('<pre>' + unpack_utils.format_multi_line(data.hex()) + '</pre>')
 
     elif eth_proto == 0x0806:  # ARP
-        hw_type, proto_type, hw_size, proto_size, opcode, sender_mac, sender_ip, target_mac, target_ip, _ = arp_packet(data)
+        hw_type, proto_type, hw_size, proto_size, opcode, sender_mac, sender_ip, target_mac, target_ip, _ = unpack_utils.arp_packet(data)
         packet_info.append(f'<strong>ARP Packet:</strong>')
         packet_info.append(f'    - Hardware Type: {hw_type}')
         packet_info.append(f'    - Protocol Type: {proto_type}')
@@ -136,16 +86,22 @@ def update_packet_detail(raw_data):
     # Append the current packet info to the list
     packet_detail.append('<br>'.join(packet_info))
 
-def update_packet_data(raw_data):
-    dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
+def update_packet_data(timestamp, raw_data):
+    global start_time
+    dest_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
     packet_info = {}
 
+    # if start time empty, this packet is the first packet, with start time 0.0
+    if(start_time == -1):
+        start_time = timestamp
+    
     # Calculate the elapsed time in seconds since the program started (6 d.p.)
-    elapsed_time = round(time.time() - start_time, 6)
+    elapsed_time = timestamp - start_time
+    formatted_elapsed_time = f"{elapsed_time:.6f}"
 
     # Initialize packet_info with source, destination, protocol, and elapsed time
     if eth_proto == 0x0800:  # IPv4
-        version, header_length, ttl, proto, src_ip, target_ip, data = ipv4_packet(data)
+        version, header_length, ttl, proto, src_ip, target_ip, data = unpack_utils.ipv4_packet(data)
         
         # Check protocol type
         if proto == 1:  # ICMP
@@ -157,7 +113,7 @@ def update_packet_data(raw_data):
         
         packet_info['source'] = src_ip
         packet_info['destination'] = target_ip
-        packet_info['elapsed_time'] = elapsed_time 
+        packet_info['elapsed_time'] = formatted_elapsed_time 
         packet_info['index'] = len(packet_data)
         update_packet_detail(raw_data)
 
@@ -165,50 +121,25 @@ def update_packet_data(raw_data):
         packet_info['protocol_name'] = 'ARP'
         packet_info['source'] = src_mac
         packet_info['destination'] = dest_mac
-        packet_info['elapsed_time'] = elapsed_time 
+        packet_info['elapsed_time'] = formatted_elapsed_time 
         packet_info['index'] = len(packet_data)
         update_packet_detail(raw_data)
     
     # Append the current packet info to the list
     packet_data.append(packet_info)
 
-def write_pcap_global_header(file):
-    global_header = struct.pack(
-        'IHHIIII',
-        0xa1b2c3d4,  # Magic number
-        2,           # Version major
-        4,           # Version minor
-        0,           # GMT to local correction
-        0,           # Accuracy of timestamps
-        65535,       # Max length of captured packets
-        1            # Data link type (Ethernet)
-    )
-    file.write(global_header)
-
-def write_pcap_packet(file, timestamp, captured_data):
-    ts_sec = int(timestamp)
-    ts_usec = int((timestamp - ts_sec) * 1e6)
-    packet_len = len(captured_data)
-    
-    packet_header = struct.pack(
-        'IIII',
-        ts_sec,      # Timestamp seconds
-        ts_usec,     # Timestamp microseconds
-        packet_len,  # Captured length
-        packet_len   # Original length
-    )
-    file.write(packet_header)
-    file.write(captured_data)
-
 # Main sniffer function
 def sniff_packets(protocols, src_ip_filter, pcap_filename):
-    global is_sniffing, src_ip, packet_type
+    global is_sniffing, src_ip, packet_type, start_time
     sniffer = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0003))
     print(src_ip)
     print(packet_type)
+
+    # init start time
+    start_time = -1
     
     with open(pcap_filename, "wb") as pcap_file:
-        write_pcap_global_header(pcap_file)
+        pcap_utils.write_pcap_global_header(pcap_file)
         print(f"Capturing packets and saving to {pcap_filename}.")
         
         try:
@@ -216,24 +147,24 @@ def sniff_packets(protocols, src_ip_filter, pcap_filename):
                 raw_data, addr = sniffer.recvfrom(65535)
                 timestamp = time.time()
 
-                dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
+                dest_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
 
                  # Parse IPv4 packets
                 if eth_proto == 0x0800:  # IPv4
-                    version, header_length, ttl, proto, src_ip, target_ip, data = ipv4_packet(data)
+                    version, header_length, ttl, proto, src_ip, target_ip, data = unpack_utils.ipv4_packet(data)
 
                     if (not protocols or proto in protocols) and (not src_ip_filter or src_ip == src_ip_filter):
                         print("IPv4")
-                        update_packet_data(raw_data)
-                        write_pcap_packet(pcap_file, timestamp, raw_data)
+                        update_packet_data(timestamp, raw_data)
+                        pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
 
                 # Parse ARP packets
                 elif eth_proto == 0x0806:  # ARP
-                    hw_type, proto_type, hw_size, proto_size, opcode, sender_mac, sender_ip, target_mac, target_ip, _ = arp_packet(data)
+                    hw_type, proto_type, hw_size, proto_size, opcode, sender_mac, sender_ip, target_mac, target_ip, _ = unpack_utils.arp_packet(data)
                     if (2054 in protocols) and (not src_ip_filter or sender_ip == src_ip_filter):
                         print("arp")
-                        update_packet_data(raw_data)
-                        write_pcap_packet(pcap_file, timestamp, raw_data)
+                        update_packet_data(timestamp, raw_data)
+                        pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
         except Exception as e:
             print(f"Error: {e}")
         finally:
@@ -251,12 +182,14 @@ def packets():
 
 @app.route('/start', methods=['POST'])
 def start_sniffing():
-    global is_sniffing, sniffing_thread, src_ip, packet_type
+    global is_sniffing, sniffing_thread, src_ip, packet_type, packet_data, packet_detail
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
     packet_type = data.get('packet_type', 'all')  # Get packet_type, default to 'all'
     if not is_sniffing:
         is_sniffing = True
+        packet_data = []
+        packet_detail = []
         protocols = set()
         if packet_type == 'icmp':
             protocols.add(1)  # ICMP
@@ -276,10 +209,8 @@ def start_sniffing():
 
 @app.route('/stop', methods=['POST'])
 def stop_sniffing():
-    global is_sniffing, packet_data, packet_detail
+    global is_sniffing
     if is_sniffing:
-        packet_data = []
-        packet_detail = []
         is_sniffing = False
         sniffing_thread.join()
         return jsonify({"status": "Sniffing stopped"})
