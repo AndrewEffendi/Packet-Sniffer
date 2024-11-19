@@ -29,30 +29,33 @@ A simple packet sniffer built using Python and Flask that captures and displays 
    pip install flask
    ```
 ## Usage
-Run the packet sniffer with the desired options:
+### Run the packet sniffer with `sudo` access:
 
    ```bash
    sudo python sniffer.py
    ```
-## Filters (from UI)
-- `Source IP Address`: Specify a source IP address to filter the packets by.
-- `Destination IP Address`: Specify a source IP address to filter the packets by.
-- `Packet Type`: Choose from options: `icmp`, `tcp`, `udp`, `arp`. Multiple protocols can be chosen.
-
-## PCAP Filename (from UI)
-- `PCAP Filename`: Specify the name of the pcap file, captured_packets.pcap by default
-
-### To use PCAP file
-```bash
-wireshark <filename>.pcap
-```
-
-# Accessing the Web Interface
-Once the application is running, open your web browser and navigate to:
+### Once the application is running, open your web browser and navigate to:
 ```bash
 http://127.0.0.1:5000/
 ```
-You will see the captured packets displayed in real-time.
+### Choose filter (Optional)
+- `Source IP Address`: Specify a source IP address to filter the packets. (Default: ANY)
+- `Destination IP Address`: Specify a target IP address to filter the packets. (Default: ANY)
+- `Packet Type`: Choose from options: `icmp`, `tcp`, `udp`, `arp`. Multiple protocols can be chosen. (Default: ALL)
+
+### Choose PCAP Filename (Optional)
+- `PCAP Filename`: Specify the name of the pcap file, without the `.pcap` extension (Default: `captured_packets`)
+
+### Start The packet sniffer
+- press the green `Start Sniffing` button
+
+### Stop The packet sniffer
+- press the red `Stop Sniffing` button
+
+### To Open the PCAP file
+```bash
+wireshark <filename>.pcap
+```
 
 ## Code Structure
 ### Sniffer.py
