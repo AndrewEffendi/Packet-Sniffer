@@ -57,7 +57,7 @@ def update_packet_data(timestamp, raw_data):
     packet_data.append(packet_overview)
 
 # Main sniffer function
-def sniff_packets(protocols, src_ip_filter, pcap_filename):
+def sniff_packets(protocols, src_ip_filter, dest_ip_filter, pcap_filename):
     global is_sniffing, src_ip, packet_type, start_time
     sniffer = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0003))
     print(src_ip)
@@ -66,7 +66,8 @@ def sniff_packets(protocols, src_ip_filter, pcap_filename):
     # init start time
     start_time = -1
     
-    with open(pcap_filename, "wb") as pcap_file:
+    pcap_filename_ext = pcap_filename + '.pcap'
+    with open(pcap_filename_ext, "wb") as pcap_file:
         pcap_utils.write_pcap_global_header(pcap_file)
         print(f"Capturing packets and saving to {pcap_filename}.")
         
@@ -81,15 +82,19 @@ def sniff_packets(protocols, src_ip_filter, pcap_filename):
                 if eth_proto == 0x0800:  # IPv4
                     version, header_length, ttl, proto, src_ip, target_ip, data = unpack_utils.ipv4_packet(data)
 
-                    if (not protocols or proto in protocols) and (not src_ip_filter or src_ip == src_ip_filter):
+                    if ((not protocols or proto in protocols) 
+                            and (not src_ip_filter or src_ip == src_ip_filter) 
+                            and (not dest_ip_filter or target_ip == dest_ip_filter)):
                         print("IPv4")
                         update_packet_data(timestamp, raw_data)
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
 
                 # Parse ARP packets
                 elif eth_proto == 0x0806:  # ARP
-                    hw_type, proto_type, hw_size, proto_size, opcode, sender_mac, sender_ip, target_mac, target_ip, _ = unpack_utils.arp_packet(data)
-                    if (2054 in protocols) and (not src_ip_filter or sender_ip == src_ip_filter):
+                    hw_type, proto_type, hw_size, proto_size, opcode, src_mac, src_ip, target_mac, target_ip, _ = unpack_utils.arp_packet(data)
+                    if ((2054 in protocols) 
+                            and (not src_ip_filter or src_ip == src_ip_filter) 
+                            and (not dest_ip_filter or target_ip == dest_ip_filter)):
                         print("arp")
                         update_packet_data(timestamp, raw_data)
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
@@ -113,25 +118,27 @@ def start_sniffing():
     global is_sniffing, sniffing_thread, src_ip, packet_type, packet_data, packet_detail
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
-    packet_type = data.get('packet_type', 'all')  # Get packet_type, default to 'all'
+    dest_ip = data.get('dest_ip') # Get dest_ip from the request
+    pcap_filename = data.get('pcap_filename')
+    packet_types = data.get('packet_types', '[]')
     if not is_sniffing:
         is_sniffing = True
         packet_data = []
         packet_detail = []
         protocols = set()
-        if packet_type == 'icmp':
+        if 'icmp' in packet_types:
             protocols.add(1)  # ICMP
-        if packet_type == 'tcp':
+        if 'tcp' in packet_types:
             protocols.add(6)  # TCP
-        if packet_type == 'udp':
+        if 'udp' in packet_types:
             protocols.add(17)  # UDP
-        if packet_type == 'arp':
+        if 'arp' in packet_types:
             protocols.add(2054)  # ARP
-        if packet_type == 'all':
-            protocols = {1, 6, 17, 2054}
-        sniffing_thread = threading.Thread(target=sniff_packets, args=(protocols, src_ip, "web_capture.pcap",))
+        if packet_types == []: 
+            protocols = {1, 6, 17, 2054} #all
+        sniffing_thread = threading.Thread(target=sniff_packets, args=(protocols, src_ip, dest_ip, pcap_filename,))
         sniffing_thread.start()
-        status_message = f"Sniffing started with source IP: {src_ip or 'any'} and packet type: {packet_type}"
+        status_message = f"Sniffing started with source IP: {src_ip or 'any'}, destination IP: {dest_ip or 'any'} and packet type: {packet_types}"
         return jsonify({"status": status_message})
     return jsonify({"status": "Sniffing already running"})
 
