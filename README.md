@@ -76,6 +76,13 @@ You will see the captured packets displayed in real-time.
 - `icmp_packet()`: unpacks arp packets
 - `tcp_segment()`: unpacks tcp segments
 - `udp_segment()`: unpacks udp segments
-### unpack_utils.py
+### pacap_utils.py
 - `write_pcap_global_header()`: writes pcap header
 - `write_pcap_packet()`: writes pcap packet
+
+### static/js/scripts.js
+- `fetchPackets()`: fetch packet data and detail from sniffer.py
+- `renderTable()`: renders the table (overview) with packet data, and when is clicked, show packet detail 
+- `sortTable()`: sorts table when header is clicked
+- `sendStartRequest()`: sends start request to sniffer.py and pass all filter variables
+- `sendStopRequest()`: send stop request to sniffer.py
