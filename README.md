@@ -32,28 +32,19 @@ A simple packet sniffer built using Python and Flask that captures and displays 
 Run the packet sniffer with the desired options:
 
    ```bash
-   sudo python sniffer.py [--protocols PROTOCOLS] [--src_ip SOURCE_IP]
+   sudo python sniffer.py
    ```
-## Options
+## Filters (from UI)
+- `Source IP Address`: Specify a source IP address to filter the packets by.
+- `Destination IP Address`: Specify a source IP address to filter the packets by.
+- `Packet Type`: Choose from options: `icmp`, `tcp`, `udp`, `arp`. Multiple protocols can be chosen.
 
-- `--protocols`: Specify which protocols to sniff. Options are `icmp`, `tcp`, `udp`, `arp`. Multiple protocols can be specified.
-- `--src_ip`: Specify a source IP address to filter the packets by.
+## PCAP Filename (from UI)
+- `PCAP Filename`: Specify the name of the pcap file, captured_packets.pcap by default
 
-## Example
-
-To capture all protocols from all source IP
+### To use PCAP file
 ```bash
-sudo python sniffer.py
-```
-
-To capture all protocols and filter by a specific source IP:
-
-```bash
-sudo python sniffer.py --src_ip 192.168.1.10
-```
-To capture only ICMP and TCP packets:
-```bash
-sudo python sniffer.py --protocols icmp tcp
+wireshark <filename>.pcap
 ```
 
 # Accessing the Web Interface
@@ -64,13 +55,27 @@ http://127.0.0.1:5000/
 You will see the captured packets displayed in real-time.
 
 ## Code Structure
-
-- `app.py`: Contains the main application code.
-- `sniff()`: The function responsible for capturing packets.
-- Packet parsing functions for different protocols:
-  - `ethernet_frame(data)`: Unpacks Ethernet frames.
-  - `ipv4_packet(data)`: Unpacks IPv4 packets.
-  - `arp_packet(data)`: Unpacks ARP packets.
-  - `icmp_packet(data)`: Unpacks ICMP packets.
-  - `tcp_segment(data)`: Unpacks TCP segments.
-  - `udp_segment(data)`: Unpacks UDP segments.
+### Sniffer.py
+- `index()`: render the template/index.html
+- `packets()`: pass packet data and packet details to the flask UI
+- `start_sniffing()`: start a new thread for sniffing using the parameter specified from the UI
+- `stop_sniffing()`: stop the thread for sniffing
+- `sniff_packets()`: main sniffer function, sniff packet, update packet data and detail, write to pcap file
+- `update_packet_data()`: to update packet data (table overview)
+- `update_packet_detail()`: to update packet detail (when click table)
+### packet_utils.py
+- `build_packet_info()`: build structured packet info (when click table)
+- `build_IPv4_overview()`: build IPV4 packet overview (table overview)
+- `build_ARP_overview()`: build ARP packet overview (table overview)
+### unpack_utils.py
+- `mac_format()`: formats raw MAC address
+- `ipv4_format()`: formats raw IP address
+- `format_multi_line()`: formats data in packets
+- `ipv4_packet()`: unpacks ipv4 packets
+- `arp_packet()`: unpacks arp packets
+- `icmp_packet()`: unpacks arp packets
+- `tcp_segment()`: unpacks tcp segments
+- `udp_segment()`: unpacks udp segments
+### unpack_utils.py
+- `write_pcap_global_header()`: writes pcap header
+- `write_pcap_packet()`: writes pcap packet
