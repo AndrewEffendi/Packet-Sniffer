@@ -62,6 +62,38 @@
             text-decoration: none;
             cursor: pointer;
         }
+        .container {
+            text-align: center;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        input[type="text"], select {
+            padding: 8px;
+            width: 250px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+        }
+        .start-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .stop-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
     </style>
     <script>
         let modal; // Modal element
@@ -160,9 +192,56 @@
 
             setInterval(fetchPackets, 1000);  // Fetch every second
         };
+
+        async function sendStartRequest() {
+            const srcIp = document.getElementById('src_ip').value;
+            const packetType = document.getElementById('packet_type').value;
+            try {
+                const response = await fetch('/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ src_ip: srcIp, packet_type: packetType })
+                });
+                const data = await response.json();
+                alert(data.status);
+            } catch (error) {
+                alert('Error communicating with server: ' + error);
+            }
+        }
+
+        async function sendStopRequest() {
+            try {
+                const response = await fetch('/stop', { method: 'POST' });
+                const data = await response.json();
+                alert(data.status);
+            } catch (error) {
+                alert('Error communicating with server: ' + error);
+            }
+        }
     </script>
 </head>
 <body>
+    <h1>Packet Sniffer</h1>
+    <div class="container">
+        <div class="input-group">
+            <label for="src_ip">Source IP Address:</label><br>
+            <input type="text" id="src_ip" name="src_ip" placeholder="e.g., 192.168.1.1">
+        </div>
+        <div class="input-group">
+            <label for="packet_type">Packet Type:</label><br>
+            <select id="packet_type" name="packet_type">
+                <option value="all">All</option>
+                <option value="icmp">ICMP</option>
+                <option value="tcp">TCP</option>
+                <option value="udp">UDP</option>
+                <option value="arp">ARP</option>
+            </select>
+        </div>
+        <button class="start-btn" onclick="sendStartRequest()">Start Sniffing</button>
+        <button class="stop-btn" onclick="sendStopRequest()">Stop Sniffing</button>
+    </div>
     <h1>Captured Packets</h1>
     <table id="packetsTable"></table>
 

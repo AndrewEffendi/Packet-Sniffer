@@ -3,11 +3,17 @@ import socket
 import struct
 import textwrap
 import time
-from flask import Flask, render_template, render_template_string, jsonify
+from flask import Flask, render_template, render_template_string, request, jsonify
 import threading
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Initialize
+sniffing_thread = None
+is_sniffing = False
+src_ip = None  # Global variable to store the source IP
+packet_type = "all"  # Global variable to store the packet type (default: all)
 
 # Store packet data
 packet_data = []
@@ -195,6 +201,29 @@ def index():
 @app.route('/packets')
 def packets():
     return jsonify({'packets': packet_data, 'details': packet_detail})
+
+@app.route('/start', methods=['POST'])
+def start_sniffing():
+    global is_sniffing, sniffing_thread, src_ip, packet_type
+    data = request.get_json()
+    src_ip = data.get('src_ip')  # Get src_ip from the request
+    packet_type = data.get('packet_type', 'all')  # Get packet_type, default to 'all'
+    if not is_sniffing:
+        is_sniffing = True
+        #sniffing_thread = threading.Thread(target=sniff_packets, args=("web_capture.pcap",))
+        #sniffing_thread.start()
+        status_message = f"Sniffing started with source IP: {src_ip or 'any'} and packet type: {packet_type}"
+        return jsonify({"status": status_message})
+    return jsonify({"status": "Sniffing already running"})
+
+@app.route('/stop', methods=['POST'])
+def stop_sniffing():
+    global is_sniffing
+    if is_sniffing:
+        is_sniffing = False
+        #sniffing_thread.join()
+        return jsonify({"status": "Sniffing stopped"})
+    return jsonify({"status": "Sniffing was not running"})
 
 # Argument parser to specify protocols and source IP filter
 def main():
