@@ -8,6 +8,7 @@ import threading
 import pcap_utils
 import unpack_utils
 import packet_utils
+import threat_detection
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -59,6 +60,22 @@ def update_packet_data(timestamp, raw_data):
     # Append the current packet info to the list
     packet_data.append(packet_overview)
 
+def run_threat_detection(proto, data, src_ip, target_ip, timestamp):
+    if proto == 6: #TCP
+        src_port, dest_port, sequence, acknowledgment, offset, flags, data = unpack_utils.tcp_segment(data)
+
+        # Build a structured packet dictionary
+        packet_info = {
+            'src_ip': src_ip,
+            'dst_ip': target_ip,
+            'dst_port': dest_port,
+            'flags': flags  # Use flags parsed from TCP
+        }
+
+        # Pass structured data to threat detection
+        threat_detection.detect_port_scanning(packet_info, timestamp)
+        threat_detection.detect_syn_flood(packet_info, timestamp)
+
 # Main sniffer function
 def sniff_packets(protocols, src_ip_filter, dest_ip_filter, pcap_filename):
     global is_sniffing, src_ip, packet_type, start_time
@@ -91,6 +108,9 @@ def sniff_packets(protocols, src_ip_filter, dest_ip_filter, pcap_filename):
                             and (not dest_ip_filter or target_ip == dest_ip_filter)):
                         update_packet_data(timestamp, raw_data)
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
+                        
+                        # run threat detection
+                        run_threat_detection(proto, data, src_ip, target_ip, timestamp)
 
                 # Parse ARP packets
                 elif eth_proto == 0x0806:  # ARP
