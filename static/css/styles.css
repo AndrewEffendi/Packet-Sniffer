@@ -1,0 +1,105 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background-color: #f4f4f4;
+}
+
+h1 {
+  color: #333;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  background-color: #fff;
+}
+
+th, td {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  text-align: left;
+  cursor: pointer;
+}
+
+th {
+  background-color: #007bff;
+  color: #fff;
+}
+
+strong {
+  color: #007bff;
+}
+
+/* Modal styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover, .close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.container {
+  text-align: left;
+}
+
+.input-group {
+  margin: 10px 0;
+}
+
+input[type="text"] {
+  padding: 8px;
+  width: 250px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+}
+
+.start-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.stop-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+button:hover {
+  opacity: 0.9;
+}
