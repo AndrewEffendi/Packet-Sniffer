@@ -250,15 +250,16 @@
         </div>
         <div class="input-group">
             <label>Packet Type:</label><br>
-            <input type="checkbox" id="select_all" name="select_all" onclick="toggleAllCheckboxes(this)"> All<br>
-            <input type="checkbox" id="icmp" name="packet_type" value="icmp"> ICMP<br>
-            <input type="checkbox" id="tcp" name="packet_type" value="tcp"> TCP<br>
-            <input type="checkbox" id="udp" name="packet_type" value="udp"> UDP<br>
-            <input type="checkbox" id="arp" name="packet_type" value="arp"> ARP<br>
+            <input type="checkbox" id="select_all" name="select_all" onclick="toggleAllCheckboxes(this)" checked> All<br>
+            <input type="checkbox" id="icmp" name="packet_type" value="icmp" checked> ICMP<br>
+            <input type="checkbox" id="tcp" name="packet_type" value="tcp" checked> TCP<br>
+            <input type="checkbox" id="udp" name="packet_type" value="udp" checked> UDP<br>
+            <input type="checkbox" id="arp" name="packet_type" value="arp" checked> ARP<br>
         </div>
         <div class="input-group">
             <label for="pcap_filename">PCAP Filename :</label><br>
             <input type="text" id="pcap_filename" name="pcap_filename" placeholder="captured_packets">
+            .pcap
         </div>
         <button class="start-btn" onclick="sendStartRequest()">Start Sniffing</button>
         <button class="stop-btn" onclick="sendStopRequest()">Stop Sniffing</button>

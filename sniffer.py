@@ -23,6 +23,9 @@ start_time = -1
 packet_data = []
 packet_detail = []
 
+# default
+DEFAULT_PCAP_FILENAME = 'captured_packets'
+
 def update_packet_detail(raw_data):
     packet_info = packet_utils.build_packet_info(raw_data)
 
@@ -60,16 +63,16 @@ def update_packet_data(timestamp, raw_data):
 def sniff_packets(protocols, src_ip_filter, dest_ip_filter, pcap_filename):
     global is_sniffing, src_ip, packet_type, start_time
     sniffer = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0003))
-    print(src_ip)
-    print(packet_type)
 
     # init start time
     start_time = -1
     
+    if pcap_filename == '':
+        pcap_filename = DEFAULT_PCAP_FILENAME
     pcap_filename_ext = pcap_filename + '.pcap'
     with open(pcap_filename_ext, "wb") as pcap_file:
         pcap_utils.write_pcap_global_header(pcap_file)
-        print(f"Capturing packets and saving to {pcap_filename}.")
+        print(f"Capturing packets and saving to {pcap_filename}.pcap")
         
         try:
             while is_sniffing:
@@ -83,9 +86,9 @@ def sniff_packets(protocols, src_ip_filter, dest_ip_filter, pcap_filename):
                     version, header_length, ttl, proto, src_ip, target_ip, data = unpack_utils.ipv4_packet(data)
 
                     if ((not protocols or proto in protocols) 
+                            and not (src_ip == '127.0.0.1' and target_ip == '127.0.0.1') # dont include loopback address
                             and (not src_ip_filter or src_ip == src_ip_filter) 
                             and (not dest_ip_filter or target_ip == dest_ip_filter)):
-                        print("IPv4")
                         update_packet_data(timestamp, raw_data)
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
 
@@ -93,9 +96,9 @@ def sniff_packets(protocols, src_ip_filter, dest_ip_filter, pcap_filename):
                 elif eth_proto == 0x0806:  # ARP
                     hw_type, proto_type, hw_size, proto_size, opcode, src_mac, src_ip, target_mac, target_ip, _ = unpack_utils.arp_packet(data)
                     if ((2054 in protocols) 
+                            and not (src_ip == '127.0.0.1' and target_ip == '127.0.0.1') # dont include loopback address
                             and (not src_ip_filter or src_ip == src_ip_filter) 
                             and (not dest_ip_filter or target_ip == dest_ip_filter)):
-                        print("arp")
                         update_packet_data(timestamp, raw_data)
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
         except Exception as e:
@@ -157,4 +160,10 @@ def main():
     app.run(debug=True, use_reloader=False)
 
 if __name__ == '__main__':
+    # suppress Flask’s built-in development server
+    import logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
+
+    # run main function
     main()
