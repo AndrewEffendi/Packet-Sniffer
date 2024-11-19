@@ -49,6 +49,9 @@ http://127.0.0.1:5000/
 ### Start The packet sniffer
 - press the green `Start Sniffing` button
 
+### View Packet Details
+- after the sniffer starts running, we can click on any row to show more detail of the packets
+
 ### Stop The packet sniffer
 - press the red `Stop Sniffing` button
 
