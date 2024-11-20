@@ -16,7 +16,6 @@ app = Flask(__name__)
 # Initialize
 sniffing_thread = None
 is_sniffing = False
-src_ip = None  # Global variable to store the source IP
 packet_type = "all"  # Global variable to store the packet type (default: all)
 start_time = -1
 
@@ -78,7 +77,7 @@ def run_threat_detection(proto, data, src_ip, dst_ip, timestamp):
 
 # Main sniffer function
 def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
-    global is_sniffing, src_ip, packet_type, start_time
+    global is_sniffing, packet_type, start_time
     sniffer = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0003))
 
     # init start time
@@ -138,7 +137,7 @@ def packets():
 
 @app.route('/start', methods=['POST'])
 def start_sniffing():
-    global is_sniffing, sniffing_thread, src_ip, packet_type, packet_data, packet_detail
+    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
     dst_ip = data.get('dst_ip') # Get dest_ip from the request
