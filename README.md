@@ -65,7 +65,7 @@ Right now It prints potential threats to console, (might change to UI if have ti
 ### `Port Scanning`: 
 Detects potential port scanning by monitoring SYN packets. If the number of unique destination ports from the same source IP exceeds a threshold (e.g., 20 unique ports) within a 10-second window, a port scan is flagged.
 ```bash
-nmap -sS 8.8.8.8
+sudo nmap -sS 8.8.8.8
 ```
 expected output
 ```bash

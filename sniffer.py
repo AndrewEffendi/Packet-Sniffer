@@ -45,7 +45,7 @@ def update_packet_data(timestamp, raw_data):
     elapsed_time = timestamp - start_time
     formatted_elapsed_time = f"{elapsed_time:.6f}"
 
-    dest_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
+    dst_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
     index = len(packet_data)
 
     # Initialize packet_overview with source, destination, protocol, and elapsed time
@@ -60,15 +60,15 @@ def update_packet_data(timestamp, raw_data):
     # Append the current packet info to the list
     packet_data.append(packet_overview)
 
-def run_threat_detection(proto, data, src_ip, target_ip, timestamp):
+def run_threat_detection(proto, data, src_ip, dst_ip, timestamp):
     if proto == 6: #TCP
-        src_port, dest_port, sequence, acknowledgment, offset, flags, data = unpack_utils.tcp_segment(data)
+        src_port, dst_port, sequence, acknowledgment, offset, flags, data = unpack_utils.tcp_segment(data)
 
         # Build a structured packet dictionary
         packet_info = {
             'src_ip': src_ip,
-            'dst_ip': target_ip,
-            'dst_port': dest_port,
+            'dst_ip': dst_ip,
+            'dst_port': dst_port,
             'flags': flags  # Use flags parsed from TCP
         }
 
@@ -77,7 +77,7 @@ def run_threat_detection(proto, data, src_ip, target_ip, timestamp):
         threat_detection.detect_syn_flood(packet_info, timestamp)
 
 # Main sniffer function
-def sniff_packets(protocols, src_ip_filter, dest_ip_filter, pcap_filename):
+def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
     global is_sniffing, src_ip, packet_type, start_time
     sniffer = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0003))
 
@@ -96,29 +96,29 @@ def sniff_packets(protocols, src_ip_filter, dest_ip_filter, pcap_filename):
                 raw_data, addr = sniffer.recvfrom(65535)
                 timestamp = time.time()
 
-                dest_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
+                dst_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
 
                  # Parse IPv4 packets
                 if eth_proto == 0x0800:  # IPv4
-                    version, header_length, ttl, proto, src_ip, target_ip, data = unpack_utils.ipv4_packet(data)
+                    version, header_length, ttl, proto, src_ip, dst_ip, data = unpack_utils.ipv4_packet(data)
 
                     if ((not protocols or proto in protocols) 
-                            and not (src_ip == '127.0.0.1' and target_ip == '127.0.0.1') # dont include loopback address
+                            and not (src_ip == '127.0.0.1' and dst_ip == '127.0.0.1') # dont include loopback address
                             and (not src_ip_filter or src_ip == src_ip_filter) 
-                            and (not dest_ip_filter or target_ip == dest_ip_filter)):
+                            and (not dst_ip_filter or dst_ip == dst_ip_filter)):
                         update_packet_data(timestamp, raw_data)
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
                         
                         # run threat detection
-                        run_threat_detection(proto, data, src_ip, target_ip, timestamp)
+                        run_threat_detection(proto, data, src_ip, dst_ip, timestamp)
 
                 # Parse ARP packets
                 elif eth_proto == 0x0806:  # ARP
-                    hw_type, proto_type, hw_size, proto_size, opcode, src_mac, src_ip, target_mac, target_ip, _ = unpack_utils.arp_packet(data)
+                    hw_type, proto_type, hw_size, proto_size, opcode, src_mac, src_ip, dst_mac, dst_ip, _ = unpack_utils.arp_packet(data)
                     if ((2054 in protocols) 
-                            and not (src_ip == '127.0.0.1' and target_ip == '127.0.0.1') # dont include loopback address
+                            and not (src_ip == '127.0.0.1' and dst_ip == '127.0.0.1') # dont include loopback address
                             and (not src_ip_filter or src_ip == src_ip_filter) 
-                            and (not dest_ip_filter or target_ip == dest_ip_filter)):
+                            and (not dst_ip_filter or dst_ip == dst_ip_filter)):
                         update_packet_data(timestamp, raw_data)
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
         except Exception as e:
@@ -141,7 +141,7 @@ def start_sniffing():
     global is_sniffing, sniffing_thread, src_ip, packet_type, packet_data, packet_detail
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
-    dest_ip = data.get('dest_ip') # Get dest_ip from the request
+    dst_ip = data.get('dst_ip') # Get dest_ip from the request
     pcap_filename = data.get('pcap_filename')
     packet_types = data.get('packet_types', '[]')
     if not is_sniffing:
@@ -159,9 +159,9 @@ def start_sniffing():
             protocols.add(2054)  # ARP
         if packet_types == []: 
             protocols = {1, 6, 17, 2054} #all
-        sniffing_thread = threading.Thread(target=sniff_packets, args=(protocols, src_ip, dest_ip, pcap_filename,))
+        sniffing_thread = threading.Thread(target=sniff_packets, args=(protocols, src_ip, dst_ip, pcap_filename,))
         sniffing_thread.start()
-        status_message = f"Sniffing started with source IP: {src_ip or 'any'}, destination IP: {dest_ip or 'any'} and packet type: {packet_types}"
+        status_message = f"Sniffing started with source IP: {src_ip or 'any'}, destination IP: {dst_ip or 'any'} and packet type: {packet_types}"
         return jsonify({"status": status_message})
     return jsonify({"status": "Sniffing already running"})
 

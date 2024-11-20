@@ -12,8 +12,8 @@ def format_multi_line(data, size=80):
 
 # Ethernet frame unpacking
 def ethernet_frame(data):
-    dest_mac, src_mac, proto = struct.unpack('! 6s 6s H', data[:14])
-    return mac_format(dest_mac), mac_format(src_mac), proto, data[14:]
+    dst_mac, src_mac, proto = struct.unpack('! 6s 6s H', data[:14])
+    return mac_format(dst_mac), mac_format(src_mac), proto, data[14:]
 
 # IPv4 packet unpacking
 def ipv4_packet(data):
@@ -41,12 +41,12 @@ def icmp_packet(data):
 
 # TCP segment unpacking
 def tcp_segment(data):
-    (src_port, dest_port, sequence, acknowledgment, offset_reserved_flags) = struct.unpack('! H H L L H', data[:14])
+    (src_port, dst_port, sequence, acknowledgment, offset_reserved_flags) = struct.unpack('! H H L L H', data[:14])
     offset = (offset_reserved_flags >> 12) * 4  # Extract the offset (header length)
     flags = offset_reserved_flags & 0x3F       # Extract the last 6 bits for flags
-    return src_port, dest_port, sequence, acknowledgment, offset, flags, data[offset:]
+    return src_port, dst_port, sequence, acknowledgment, offset, flags, data[offset:]
 
 # UDP segment unpacking
 def udp_segment(data):
-    src_port, dest_port, length, checksum = struct.unpack('! H H H H', data[:8])
-    return src_port, dest_port, length, checksum, data[8:]
+    src_port, dst_port, length, checksum = struct.unpack('! H H H H', data[:8])
+    return src_port, dst_port, length, checksum, data[8:]

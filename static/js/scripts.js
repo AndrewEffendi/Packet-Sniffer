@@ -92,7 +92,7 @@ window.onload = () => {
 
 async function sendStartRequest() {
     const srcIp = document.getElementById('src_ip').value;
-    const destIp = document.getElementById('dest_ip').value;
+    const dstIp = document.getElementById('dst_ip').value;
     const pcapFilename = document.getElementById('pcap_filename').value;
     const selectedPacketTypes = [];
     if (document.getElementById('icmp').checked) selectedPacketTypes.push("icmp");
@@ -106,7 +106,7 @@ async function sendStartRequest() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ src_ip: srcIp, dest_ip: destIp, pcap_filename: pcapFilename, packet_types: selectedPacketTypes })
+            body: JSON.stringify({ src_ip: srcIp, dst_ip: dstIp, pcap_filename: pcapFilename, packet_types: selectedPacketTypes })
         });
         const data = await response.json();
         alert(data.status);
