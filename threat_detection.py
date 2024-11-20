@@ -29,8 +29,10 @@ def detect_port_scanning(packet, timestamp):
             # Check if we already alerted about this IP recently
             last_alert_time = alert_log.get(src_ip, 0)
             if timestamp - last_alert_time > 10:  # Alert only if 10+ seconds since the last alert
-                print(f"Potential port scan detected from {src_ip} to {dst_ip}")
+                message = f"Potential port scan detected from {src_ip} to {dst_ip}"
+                print(message)
                 alert_log[src_ip] = timestamp  # Update the alert timestamp
+                return message
 
 
 # Track SYN and ACK counts for each source IP
@@ -57,6 +59,8 @@ def detect_syn_flood(packet, timestamp):
     if syn_count > 100 and syn_count > ack_count * 3:  # Threshold: SYN > ACK * 3
         # Check if we already alerted about this IP recently (cooldown period)
         if timestamp - last_alert_time[src_ip] > 10:  # Only alert if 10+ seconds since last alert
-            print(f"Potential SYN flood detected from {src_ip}")
+            message = f"Potential SYN flood detected from {src_ip}"
+            print(message)
             last_alert_time[src_ip] = timestamp  # Update the last alert time
+            return message
 

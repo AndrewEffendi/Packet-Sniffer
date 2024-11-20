@@ -22,6 +22,7 @@ start_time = -1
 # Store packet data
 packet_data = []
 packet_detail = []
+threat_log = []
 
 # default
 DEFAULT_PCAP_FILENAME = 'captured_packets'
@@ -72,8 +73,14 @@ def run_threat_detection(proto, data, src_ip, dst_ip, timestamp):
         }
 
         # Pass structured data to threat detection
-        threat_detection.detect_port_scanning(packet_info, timestamp)
-        threat_detection.detect_syn_flood(packet_info, timestamp)
+        port_scanning_threat = threat_detection.detect_port_scanning(packet_info, timestamp)
+        syn_flood_threat = threat_detection.detect_syn_flood(packet_info, timestamp)
+
+        # add to threat log if there is potential threat
+        if (port_scanning_threat):
+            threat_log.append(port_scanning_threat)
+        if (syn_flood_threat):
+            threat_log.append(syn_flood_threat)
 
 # Main sniffer function
 def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
@@ -133,7 +140,7 @@ def index():
 
 @app.route('/packets')
 def packets():
-    return jsonify({'packets': packet_data, 'details': packet_detail})
+    return jsonify({'packets': packet_data, 'details': packet_detail, 'threats': threat_log})
 
 @app.route('/start', methods=['POST'])
 def start_sniffing():
@@ -147,6 +154,7 @@ def start_sniffing():
         is_sniffing = True
         packet_data = []
         packet_detail = []
+        threat_log = []
         protocols = set()
         if 'icmp' in packet_types:
             protocols.add(1)  # ICMP

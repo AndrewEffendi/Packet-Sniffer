@@ -9,8 +9,22 @@ function fetchPackets() {
         .then(data => {
             packetData = data.packets; // Store packet data globally
             packetDetail = data.details; // Store packet detail globally
+            threatLog = data.threats; // store the threat log globally
             renderTable(packetData, packetDetail); // Render table with fetched data
+            renderThreatLog(threatLog);
         });
+}
+
+// Render table with sorted packet data
+function renderThreatLog(threatLog) {
+    const threatLogDiv = document.getElementById('threatLog');
+    if (threatLog.length > 0) {
+        threatLogDiv.innerHTML = ''; // Clear previous entries if threats exist
+    }    
+    threatLog.forEach((threat) => {
+        threatLogDiv.innerHTML = threatLogDiv.innerHTML + threat + '<br>'; // set threat log
+    });
+    
 }
 
 // Render table with sorted packet data
