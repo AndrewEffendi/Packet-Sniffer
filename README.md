@@ -117,8 +117,9 @@ Potential port scan detected from 172.20.209.83 to 8.8.8.8
 - `write_pcap_global_header()`: writes pcap header
 - `write_pcap_packet()`: writes pcap packet
 ### threat_detection.py
-- `detect_port_scanning()`: Detects potential port scanning by monitoring SYN packets. If the number of unique destination ports from the same source IP exceeds a threshold (e.g., 20 unique ports) within a 10-second window, a port scan is flagged.
-- `detect_syn_flood()`: Detects potential SYN flood attacks by monitoring the ratio of SYN packets to ACK packets from the same source IP. If the number of SYN packets exceeds 100 and is more than three times the number of ACK packets within a specified time window, a SYN flood is flagged.
+- `detect_port_scanning()`: Detects potential port scanning by monitoring SYN packets. If the number of unique destination ports from the same source IP exceeds the threshold (20 unique ports) within a 10-second window, a port scan is flagged.
+- `detect_syn_flood()`: Detects potential SYN flood attacks by monitoring the ratio of SYN packets to ACK packets from the same source IP. If the number of SYN packets exceeds the threshold (100) and is more than three times the number of ACK packets within a 10-second window, a SYN flood is flagged.
+- `detect_icmp_flood()`: Detects potential ICMP flood attacks by monitoring ICMP Packets from the same source IP. If the number of ICMP Echo Request exceeds the threshold (100), an ICMP flood is flagged.
 
 ### static/js/scripts.js
 - `fetchPackets()`: fetch packet data and detail from sniffer.py
