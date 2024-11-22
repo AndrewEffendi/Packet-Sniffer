@@ -82,8 +82,3 @@ def detect_icmp_flood(packet, timestamp):
                 print(message)
                 alert_log_icmp_flood[src_ip] = timestamp  # Update the last alert time
                 return message 
-
-def detect_arp_spoofing(src_mac, dst_ip, timestamp):
-    if dst_ip in arp_table and arp_table[dst_ip] != src_mac:
-        print(f"ARP Spoofing detected for IP {dst_ip}")
-    arp_table[dst_ip] = src_mac

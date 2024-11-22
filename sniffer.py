@@ -94,9 +94,6 @@ def run_threat_detection_IPv4(proto, data, src_ip, dst_ip, timestamp):
         if (syn_flood_threat):
             threat_log.append(syn_flood_threat)
 
-def run_threat_detection_ARP(src_mac, dst_ip, timestamp):
-    threat_detection.detect_arp_spoofing(src_mac, dst_ip, timestamp)
-
 # Main sniffer function
 def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
     global is_sniffing, packet_type, start_time
@@ -142,9 +139,6 @@ def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
                             and (not dst_ip_filter or dst_ip == dst_ip_filter)):
                         update_packet_data(timestamp, raw_data)
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
-
-                        # run threat detection
-                        #run_threat_detection_ARP(src_mac, dst_ip, timestamp)
 
         except Exception as e:
             print(f"Error: {e}")
