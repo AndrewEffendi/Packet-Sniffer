@@ -60,7 +60,19 @@ def update_packet_data(timestamp, raw_data):
     # Append the current packet info to the list
     packet_data.append(packet_overview)
 
-def run_threat_detection(proto, data, src_ip, dst_ip, timestamp):
+def run_threat_detection_IPv4(proto, data, src_ip, dst_ip, timestamp):
+    if proto == 1:  # ICMP
+        icmp_type, code, checksum, data = unpack_utils.icmp_packet(data)
+        packet_info = {
+            'src_ip': src_ip,
+            'dst_ip': dst_ip,
+            'icmp_type': icmp_type
+        }
+        icmp_flood_threat = threat_detection.detect_icmp_flood(packet_info, timestamp)
+        # add to threat log if there is potential threat
+        if (icmp_flood_threat):
+            threat_log.append(icmp_flood_threat)
+            
     if proto == 6: #TCP
         src_port, dst_port, sequence, acknowledgment, offset, flags, data = unpack_utils.tcp_segment(data)
 
@@ -81,6 +93,9 @@ def run_threat_detection(proto, data, src_ip, dst_ip, timestamp):
             threat_log.append(port_scanning_threat)
         if (syn_flood_threat):
             threat_log.append(syn_flood_threat)
+
+def run_threat_detection_ARP(src_mac, dst_ip, timestamp):
+    threat_detection.detect_arp_spoofing(src_mac, dst_ip, timestamp)
 
 # Main sniffer function
 def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
@@ -116,7 +131,7 @@ def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
                         
                         # run threat detection
-                        run_threat_detection(proto, data, src_ip, dst_ip, timestamp)
+                        run_threat_detection_IPv4(proto, data, src_ip, dst_ip, timestamp)
 
                 # Parse ARP packets
                 elif eth_proto == 0x0806:  # ARP
@@ -127,6 +142,10 @@ def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
                             and (not dst_ip_filter or dst_ip == dst_ip_filter)):
                         update_packet_data(timestamp, raw_data)
                         pcap_utils.write_pcap_packet(pcap_file, timestamp, raw_data)
+
+                        # run threat detection
+                        #run_threat_detection_ARP(src_mac, dst_ip, timestamp)
+
         except Exception as e:
             print(f"Error: {e}")
         finally:
@@ -144,7 +163,7 @@ def packets():
 
 @app.route('/start', methods=['POST'])
 def start_sniffing():
-    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail
+    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
     dst_ip = data.get('dst_ip') # Get dest_ip from the request

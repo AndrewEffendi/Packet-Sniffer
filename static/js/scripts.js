@@ -20,11 +20,12 @@ function renderThreatLog(threatLog) {
     const threatLogDiv = document.getElementById('threatLog');
     if (threatLog.length > 0) {
         threatLogDiv.innerHTML = ''; // Clear previous entries if threats exist
-    }    
-    threatLog.forEach((threat) => {
-        threatLogDiv.innerHTML = threatLogDiv.innerHTML + threat + '<br>'; // set threat log
-    });
-    
+        threatLog.forEach((threat) => {
+            threatLogDiv.innerHTML = threatLogDiv.innerHTML + threat + '<br>'; // set threat log
+        });
+    } else { 
+        threatLogDiv.innerHTML = 'None';
+    }
 }
 
 // Render table with sorted packet data

@@ -61,26 +61,34 @@ wireshark <filename>.pcap
 ```
 
 ## Threat Detection
-Right now It prints potential threats to console, (might change to UI if have time)
-### `Port Scanning`: 
-Detects potential port scanning by monitoring SYN packets. If the number of unique destination ports from the same source IP exceeds a threshold (e.g., 20 unique ports) within a 10-second window, a port scan is flagged.
-```bash
-sudo nmap -sS 8.8.8.8
-```
-expected output
-```bash
-Potential port scan detected from 172.20.209.83 to 8.8.8.8
-```
-
-
 ### `SYN Flood`: 
-Detects potential SYN flood attacks by monitoring the ratio of SYN packets to ACK packets from the same source IP. If the number of SYN packets exceeds 100 and is more than three times the number of ACK packets within a specified time window, a SYN flood is flagged.
+Detects potential SYN flood attacks by monitoring the ratio of SYN packets to ACK packets from the same source IP. If the number of SYN packets exceeds the threshold (100) and is more than three times the number of ACK packets within a 10-second window, a SYN flood is flagged.
 ```bash
 sudo hping3 -S -p 80 -i u10000 --count 300 8.8.8.8
 ```
 expected output
 ```bash
 Potential SYN flood detected from 172.20.209.83
+```
+
+### `ICMP Flood`: 
+Detects potential ICMP flood attacks by monitoring ICMP Packets from the same source IP. If the number of ICMP Echo Request exceeds the threshold (100), an ICMP flood is flagged.
+```bash
+ping -c 200 -i 0.01 8.8.8.8
+```
+expected output
+```bash
+Potential ICMP flood detected from 172.20.209.83
+```
+
+### `Port Scanning`: 
+Detects potential port scanning by monitoring SYN packets. If the number of unique destination ports from the same source IP exceeds the threshold (20 unique ports) within a 10-second window, a port scan is flagged.
+```bash
+sudo nmap -sS 8.8.8.8
+```
+expected output
+```bash
+Potential port scan detected from 172.20.209.83 to 8.8.8.8
 ```
 
 ## Code Structure
