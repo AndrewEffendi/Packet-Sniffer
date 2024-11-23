@@ -19,6 +19,13 @@ is_sniffing = False
 packet_type = "all"  # Global variable to store the packet type (default: all)
 start_time = -1
 total_bytes_captured = 0
+protocol_counts = {
+    'TCP': 0,
+    'UDP': 0,
+    'ICMP': 0,
+    'ARP': 0,
+    'Other': 0
+}
 
 # Store packet data
 packet_data = []
@@ -35,13 +42,12 @@ def update_packet_detail(raw_data):
     packet_detail.append('<br>'.join(packet_info))
 
 def update_packet_data(timestamp, raw_data):
-    global start_time, total_bytes_captured
+    global start_time, total_bytes_captured, protocol_counts
     packet_overview = {}
 
     # if start time empty, this packet is the first packet, with start time 0.0
     if(start_time == -1):
         start_time = timestamp
-        total_bytes_captured = 0  # renew captured bytes
     
     # Calculate the elapsed time in seconds since the program started (6 d.p.)
     elapsed_time = timestamp - start_time
@@ -57,10 +63,23 @@ def update_packet_data(timestamp, raw_data):
     if eth_proto == 0x0800:  # IPv4
         packet_overview = packet_utils.build_IPv4_overview(raw_data, index, formatted_elapsed_time)
         update_packet_detail(raw_data)
+        # update protocol counts
+        version, header_length, ttl, proto, src_ip, dst_ip, data = unpack_utils.ipv4_packet(data)
+        if proto == 6:
+            protocol_counts['TCP'] += 1
+        elif proto == 17:
+            protocol_counts['UDP'] += 1
+        elif proto == 1:
+            protocol_counts['ICMP'] += 1
+        else:
+            protocol_counts['Other'] += 1
 
     elif eth_proto == 0x0806:  # ARP
         packet_overview = packet_utils.build_ARP_overview(raw_data, index, formatted_elapsed_time)
         update_packet_detail(raw_data)
+        protocol_counts['ARP'] += 1
+    else:
+        protocol_counts['Other'] += 1
     
     # Append the current packet info to the list
     packet_data.append(packet_overview)
@@ -169,7 +188,7 @@ def packets():
 
 @app.route('/start', methods=['POST'])
 def start_sniffing():
-    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log
+    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log, total_bytes_captured, protocol_counts
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
     dst_ip = data.get('dst_ip') # Get dest_ip from the request
@@ -181,6 +200,13 @@ def start_sniffing():
         packet_detail = []
         threat_log = []
         total_bytes_captured = 0
+        protocol_counts = {
+            'TCP': 0,
+            'UDP': 0,
+            'ICMP': 0,
+            'ARP': 0,
+            'Other': 0
+        }
         protocols = set()
         if 'icmp' in packet_types:
             protocols.add(1)  # ICMP
@@ -231,6 +257,19 @@ def get_bandwidth():
         "formatted_bandwidth": format_bytes(bandwidth) + "/s"
     })
 
+
+@app.route('/protocol-stats')
+def get_protocol_stats():
+    total = sum(protocol_counts.values())
+    if total == 0:
+        percentages = {proto: 0 for proto in protocol_counts}
+    else:
+        percentages = {proto: (count/total)*100 for proto, count in protocol_counts.items()}
+    
+    return jsonify({
+        'counts': protocol_counts,
+        'percentages': percentages
+    })
 
 # Argument parser to specify protocols and source IP filter
 def main():

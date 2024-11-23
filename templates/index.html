@@ -35,6 +35,9 @@
         <p>Total Captured: <span id="total-bytes">0 B</span></p>
         <p>Current Bandwidth: <span id="current-bandwidth">0 B/s</span></p>
     </div>
+    <div class="chart-container">
+        <canvas id="protocolChart"></canvas>
+    </div>
     <h1>Potential Threats</h1>
     <div id="threatLog"></div>
     <h1>Captured Packets</h1>
@@ -65,5 +68,8 @@
 
         updateBandwidth();
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/traffic_analysis_scripts.js') }}"></script>
+    
 </body>
 </html>
