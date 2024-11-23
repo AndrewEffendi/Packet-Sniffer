@@ -31,6 +31,10 @@
         <button class="start-btn" onclick="sendStartRequest()">Start Sniffing</button>
         <button class="stop-btn" onclick="sendStopRequest()">Stop Sniffing</button>
     </div>
+    <div class="bandwidth-info">
+        <p>Total Captured: <span id="total-bytes">0 B</span></p>
+        <p>Current Bandwidth: <span id="current-bandwidth">0 B/s</span></p>
+    </div>
     <h1>Potential Threats</h1>
     <div id="threatLog"></div>
     <h1>Captured Packets</h1>
@@ -45,5 +49,21 @@
         </div>
     </div>
     <script src="/static/js/scripts.js"></script>
+    <script>
+        // Add bandwidth monitoring
+        function updateBandwidth() {
+            setInterval(() => {
+                fetch('/bandwidth')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update the UI elements with bandwidth data
+                        document.getElementById('total-bytes').textContent = data.formatted_total;
+                        document.getElementById('current-bandwidth').textContent = data.formatted_bandwidth;
+                    });
+            }, 1000);
+        }
+
+        updateBandwidth();
+    </script>
 </body>
 </html>

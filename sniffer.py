@@ -18,6 +18,7 @@ sniffing_thread = None
 is_sniffing = False
 packet_type = "all"  # Global variable to store the packet type (default: all)
 start_time = -1
+total_bytes_captured = 0
 
 # Store packet data
 packet_data = []
@@ -34,12 +35,13 @@ def update_packet_detail(raw_data):
     packet_detail.append('<br>'.join(packet_info))
 
 def update_packet_data(timestamp, raw_data):
-    global start_time
+    global start_time, total_bytes_captured
     packet_overview = {}
 
     # if start time empty, this packet is the first packet, with start time 0.0
     if(start_time == -1):
         start_time = timestamp
+        total_bytes_captured = 0  # renew captured bytes
     
     # Calculate the elapsed time in seconds since the program started (6 d.p.)
     elapsed_time = timestamp - start_time
@@ -47,6 +49,9 @@ def update_packet_data(timestamp, raw_data):
 
     dst_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
     index = len(packet_data)
+
+    # update total bytes captured
+    total_bytes_captured += len(raw_data)
 
     # Initialize packet_overview with source, destination, protocol, and elapsed time
     if eth_proto == 0x0800:  # IPv4
@@ -146,6 +151,13 @@ def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
             sniffer.close()
             print("Sniffing stopped.")
 
+def format_bytes(bytes):
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if bytes < 1024:
+            return f"{bytes:.2f} {unit}"
+        bytes /= 1024
+    return f"{bytes:.2f} TB"
+
 # Web route to display captured packets
 @app.route('/')
 def index():
@@ -168,6 +180,7 @@ def start_sniffing():
         packet_data = []
         packet_detail = []
         threat_log = []
+        total_bytes_captured = 0
         protocols = set()
         if 'icmp' in packet_types:
             protocols.add(1)  # ICMP
@@ -193,6 +206,31 @@ def stop_sniffing():
         sniffing_thread.join()
         return jsonify({"status": "Sniffing stopped"})
     return jsonify({"status": "Sniffing was not running"})
+
+
+@app.route('/bandwidth')
+def get_bandwidth():
+    global start_time, total_bytes_captured
+    
+    if not is_sniffing or start_time == -1:
+        return jsonify({
+            "total_bytes": total_bytes_captured,
+            "bandwidth": 0,
+            "formatted_total": format_bytes(total_bytes_captured),
+            "formatted_bandwidth": "0 B/s"
+        })
+    
+    current_time = time.time()
+    duration = current_time - start_time
+    bandwidth = total_bytes_captured / duration if duration > 0 else 0
+
+    return jsonify({
+        "total_bytes": total_bytes_captured,
+        "bandwidth": bandwidth,
+        "formatted_total": format_bytes(total_bytes_captured),
+        "formatted_bandwidth": format_bytes(bandwidth) + "/s"
+    })
+
 
 # Argument parser to specify protocols and source IP filter
 def main():
