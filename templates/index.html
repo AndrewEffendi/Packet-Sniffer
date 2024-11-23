@@ -33,7 +33,7 @@
     </div>
     <div class="bandwidth-info">
         <p>Total Captured: <span id="total-bytes">0 B</span></p>
-        <p>Current Bandwidth: <span id="current-bandwidth">0 B/s</span></p>
+        <p>Current Throughput: <span id="current-throughput">0 B/s</span></p>
     </div>
     <div class="chart-container">
         <canvas id="protocolChart"></canvas>
@@ -59,9 +59,8 @@
                 fetch('/bandwidth')
                     .then(response => response.json())
                     .then(data => {
-                        // Update the UI elements with bandwidth data
                         document.getElementById('total-bytes').textContent = data.formatted_total;
-                        document.getElementById('current-bandwidth').textContent = data.formatted_bandwidth;
+                        document.getElementById('current-throughput').textContent = data.formatted_throughput;
                     });
             }, 1000);
         }

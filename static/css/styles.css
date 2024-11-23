@@ -109,3 +109,16 @@ button:hover {
     height: 400px;
     margin: 20px auto;
 }
+
+.bandwidth-info {
+  margin: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.bandwidth-info p {
+  margin: 5px 0;
+  font-family: monospace;
+}

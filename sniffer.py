@@ -19,6 +19,8 @@ is_sniffing = False
 packet_type = "all"  # Global variable to store the packet type (default: all)
 start_time = -1
 total_bytes_captured = 0
+last_bandwidth_check = None
+bytes_since_last_check = 0
 protocol_counts = {
     'TCP': 0,
     'UDP': 0,
@@ -42,7 +44,7 @@ def update_packet_detail(raw_data):
     packet_detail.append('<br>'.join(packet_info))
 
 def update_packet_data(timestamp, raw_data):
-    global start_time, total_bytes_captured, protocol_counts
+    global start_time, total_bytes_captured, bytes_since_last_check, protocol_counts
     packet_overview = {}
 
     # if start time empty, this packet is the first packet, with start time 0.0
@@ -57,7 +59,10 @@ def update_packet_data(timestamp, raw_data):
     index = len(packet_data)
 
     # update total bytes captured
-    total_bytes_captured += len(raw_data)
+    packet_size = len(raw_data)
+    total_bytes_captured += packet_size
+    bytes_since_last_check += packet_size
+
 
     # Initialize packet_overview with source, destination, protocol, and elapsed time
     if eth_proto == 0x0800:  # IPv4
@@ -177,6 +182,7 @@ def format_bytes(bytes):
         bytes /= 1024
     return f"{bytes:.2f} TB"
 
+ 
 # Web route to display captured packets
 @app.route('/')
 def index():
@@ -188,7 +194,7 @@ def packets():
 
 @app.route('/start', methods=['POST'])
 def start_sniffing():
-    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log, total_bytes_captured, protocol_counts
+    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log, total_bytes_captured, last_bandwidth_check, bytes_since_last_check, protocol_counts
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
     dst_ip = data.get('dst_ip') # Get dest_ip from the request
@@ -200,6 +206,8 @@ def start_sniffing():
         packet_detail = []
         threat_log = []
         total_bytes_captured = 0
+        last_bandwidth_check = None
+        bytes_since_last_check = 0
         protocol_counts = {
             'TCP': 0,
             'UDP': 0,
@@ -236,25 +244,36 @@ def stop_sniffing():
 
 @app.route('/bandwidth')
 def get_bandwidth():
-    global start_time, total_bytes_captured
+    global start_time, total_bytes_captured, last_bandwidth_check, bytes_since_last_check, is_sniffing
+    current_time = time.time()
     
     if not is_sniffing or start_time == -1:
         return jsonify({
             "total_bytes": total_bytes_captured,
-            "bandwidth": 0,
+            "throughput": 0,
             "formatted_total": format_bytes(total_bytes_captured),
-            "formatted_bandwidth": "0 B/s"
+            "formatted_throughput": "0 B/s"
         })
     
-    current_time = time.time()
-    duration = current_time - start_time
-    bandwidth = total_bytes_captured / duration if duration > 0 else 0
-
+    # Calculate current throughput using a sliding window
+    if last_bandwidth_check is None:
+        throughput = 0
+        last_bandwidth_check = current_time
+    else:
+        time_diff = current_time - last_bandwidth_check
+        if time_diff > 0:
+            throughput = bytes_since_last_check / time_diff
+            # Reset for next calculation
+            bytes_since_last_check = 0
+            last_bandwidth_check = current_time
+        else:
+            throughput = 0
+    
     return jsonify({
         "total_bytes": total_bytes_captured,
-        "bandwidth": bandwidth,
+        "throughput": throughput,
         "formatted_total": format_bytes(total_bytes_captured),
-        "formatted_bandwidth": format_bytes(bandwidth) + "/s"
+        "formatted_throughput": format_bytes(throughput) + "/s",
     })
 
 
