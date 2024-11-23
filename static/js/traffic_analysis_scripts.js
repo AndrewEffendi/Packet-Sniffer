@@ -67,8 +67,41 @@ function updateProtocolChart() {
         });
 }
 
+function updateTopTalkers() {
+    fetch('/top-talkers')
+        .then(response => response.json())
+        .then(data => {
+            // Update senders table
+            const sendersBody = document.getElementById('top-senders-body');
+            sendersBody.innerHTML = data.top_senders.map((item, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.ip}</td>
+                    <td>${item.formatted_bytes}</td>
+                    <td>${item.packets}</td>
+                </tr>
+            `).join('');
+
+            // Update receivers table
+            const receiversBody = document.getElementById('top-receivers-body');
+            receiversBody.innerHTML = data.top_receivers.map((item, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.ip}</td>
+                    <td>${item.formatted_bytes}</td>
+                    <td>${item.packets}</td>
+                </tr>
+            `).join('');
+        });
+}
+
 // Start updating the chart when the page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Update chart every second when sniffing is active
+    // Update chart every second
     setInterval(updateProtocolChart, 1000);
+    
+    // Update top talkers every second
+    setInterval(updateTopTalkers, 1000);
 });
+
+

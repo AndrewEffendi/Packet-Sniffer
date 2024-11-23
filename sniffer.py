@@ -28,7 +28,11 @@ protocol_counts = {
     'ARP': 0,
     'Other': 0
 }
-
+# store ip address status for top talkers
+ip_stats = {
+    'senders': {},    # {ip: {'bytes': 0, 'packets': 0}}
+    'receivers': {}   # {ip: {'bytes': 0, 'packets': 0}}
+}
 # Store packet data
 packet_data = []
 packet_detail = []
@@ -44,7 +48,7 @@ def update_packet_detail(raw_data):
     packet_detail.append('<br>'.join(packet_info))
 
 def update_packet_data(timestamp, raw_data):
-    global start_time, total_bytes_captured, bytes_since_last_check, protocol_counts
+    global start_time, total_bytes_captured, bytes_since_last_check, protocol_counts, ip_stats
     packet_overview = {}
 
     # if start time empty, this packet is the first packet, with start time 0.0
@@ -78,6 +82,17 @@ def update_packet_data(timestamp, raw_data):
             protocol_counts['ICMP'] += 1
         else:
             protocol_counts['Other'] += 1
+
+         # Update sender stats
+        if src_ip not in ip_stats['senders']:
+            ip_stats['senders'][src_ip] = {'bytes': 0, 'packets': 0}
+        ip_stats['senders'][src_ip]['bytes'] += packet_size
+        ip_stats['senders'][src_ip]['packets'] += 1
+        # Update receiver stats
+        if dst_ip not in ip_stats['receivers']:
+            ip_stats['receivers'][dst_ip] = {'bytes': 0, 'packets': 0}
+        ip_stats['receivers'][dst_ip]['bytes'] += packet_size
+        ip_stats['receivers'][dst_ip]['packets'] += 1
 
     elif eth_proto == 0x0806:  # ARP
         packet_overview = packet_utils.build_ARP_overview(raw_data, index, formatted_elapsed_time)
@@ -194,7 +209,7 @@ def packets():
 
 @app.route('/start', methods=['POST'])
 def start_sniffing():
-    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log, total_bytes_captured, last_bandwidth_check, bytes_since_last_check, protocol_counts
+    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log, total_bytes_captured, last_bandwidth_check, bytes_since_last_check, protocol_counts, ip_stats
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
     dst_ip = data.get('dst_ip') # Get dest_ip from the request
@@ -215,6 +230,7 @@ def start_sniffing():
             'ARP': 0,
             'Other': 0
         }
+        ip_stats = {'senders': {}, 'receivers': {}}
         protocols = set()
         if 'icmp' in packet_types:
             protocols.add(1)  # ICMP
@@ -240,7 +256,6 @@ def stop_sniffing():
         sniffing_thread.join()
         return jsonify({"status": "Sniffing stopped"})
     return jsonify({"status": "Sniffing was not running"})
-
 
 @app.route('/bandwidth')
 def get_bandwidth():
@@ -276,7 +291,6 @@ def get_bandwidth():
         "formatted_throughput": format_bytes(throughput) + "/s",
     })
 
-
 @app.route('/protocol-stats')
 def get_protocol_stats():
     total = sum(protocol_counts.values())
@@ -289,6 +303,26 @@ def get_protocol_stats():
         'counts': protocol_counts,
         'percentages': percentages
     })
+
+@app.route('/top-talkers')
+def get_top_talkers():
+    def get_top_ips(ip_dict, limit=5):
+        # Sort IPs by bytes and get top ones
+        sorted_ips = sorted(ip_dict.items(), 
+                          key=lambda x: x[1]['bytes'], 
+                          reverse=True)[:limit]
+        return [{
+            'ip': ip,
+            'bytes': stats['bytes'],
+            'packets': stats['packets'],
+            'formatted_bytes': format_bytes(stats['bytes'])
+        } for ip, stats in sorted_ips]
+
+    return jsonify({
+        'top_senders': get_top_ips(ip_stats['senders']),
+        'top_receivers': get_top_ips(ip_stats['receivers'])
+    })
+
 
 # Argument parser to specify protocols and source IP filter
 def main():

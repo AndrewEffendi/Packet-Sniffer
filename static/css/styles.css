@@ -122,3 +122,37 @@ button:hover {
   margin: 5px 0;
   font-family: monospace;
 }
+
+.top-talkers {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px;
+}
+
+.talkers-section {
+  flex: 1;
+  margin: 0 10px;
+}
+
+.talkers-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  color: black;
+}
+
+.talkers-table th, .talkers-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+  color: black;
+}
+
+.talkers-table th {
+  background-color: #f5f5f5;
+  color: black;
+}
+
+.talkers-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}

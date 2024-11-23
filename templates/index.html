@@ -38,6 +38,39 @@
     <div class="chart-container">
         <canvas id="protocolChart"></canvas>
     </div>
+    <div class="top-talkers">
+        <div class="talkers-section">
+            <h3>Top Senders</h3>
+            <table class="talkers-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>IP Address</th>
+                        <th>Data Sent</th>
+                        <th>Packets</th>
+                    </tr>
+                </thead>
+                <tbody id="top-senders-body">
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="talkers-section">
+            <h3>Top Receivers</h3>
+            <table class="talkers-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>IP Address</th>
+                        <th>Data Received</th>
+                        <th>Packets</th>
+                    </tr>
+                </thead>
+                <tbody id="top-receivers-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
     <h1>Potential Threats</h1>
     <div id="threatLog"></div>
     <h1>Captured Packets</h1>
