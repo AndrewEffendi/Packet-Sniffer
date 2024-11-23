@@ -32,11 +32,14 @@
         <button class="stop-btn" onclick="sendStopRequest()">Stop Sniffing</button>
     </div>
     <div class="bandwidth-info">
-        <p>Total Captured: <span id="total-bytes">0 B</span></p>
+        <p>Total  Captured Packets: <span id="total-packets">0</span></p>
+        <p>Total Captured Size: <span id="total-bytes">0 B</span></p>
         <p>Current Throughput: <span id="current-throughput">0 B/s</span></p>
     </div>
-    <div class="chart-container">
-        <canvas id="protocolChart"></canvas>
+    <div class="protocol-stats">
+        <div class="chart-container">
+            <canvas id="protocolChart"></canvas>
+        </div>
     </div>
     <div class="top-talkers">
         <div class="talkers-section">

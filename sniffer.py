@@ -83,21 +83,37 @@ def update_packet_data(timestamp, raw_data):
         else:
             protocol_counts['Other'] += 1
 
-         # Update sender stats
-        if src_ip not in ip_stats['senders']:
-            ip_stats['senders'][src_ip] = {'bytes': 0, 'packets': 0}
-        ip_stats['senders'][src_ip]['bytes'] += packet_size
-        ip_stats['senders'][src_ip]['packets'] += 1
-        # Update receiver stats
-        if dst_ip not in ip_stats['receivers']:
-            ip_stats['receivers'][dst_ip] = {'bytes': 0, 'packets': 0}
-        ip_stats['receivers'][dst_ip]['bytes'] += packet_size
-        ip_stats['receivers'][dst_ip]['packets'] += 1
+        # Skip localhost addresses
+        if src_ip != '127.0.0.1' and dst_ip != '127.0.0.1':  # Only process non-localhost traffic
+            if src_ip not in ip_stats['senders']:
+                ip_stats['senders'][src_ip] = {'bytes': 0, 'packets': 0}
+            ip_stats['senders'][src_ip]['bytes'] += packet_size
+            ip_stats['senders'][src_ip]['packets'] += 1
+            # Update receiver stats
+            if dst_ip not in ip_stats['receivers']:
+                ip_stats['receivers'][dst_ip] = {'bytes': 0, 'packets': 0}
+            ip_stats['receivers'][dst_ip]['bytes'] += packet_size
+            ip_stats['receivers'][dst_ip]['packets'] += 1
 
     elif eth_proto == 0x0806:  # ARP
         packet_overview = packet_utils.build_ARP_overview(raw_data, index, formatted_elapsed_time)
         update_packet_detail(raw_data)
         protocol_counts['ARP'] += 1
+
+        hw_type, proto_type, hw_size, proto_size, opcode, src_mac, src_ip, dst_mac, dst_ip, _ = unpack_utils.arp_packet(data)
+        # Skip localhost addresses
+        if src_ip != '127.0.0.1' and dst_ip != '127.0.0.1':
+            # Update sender stats for ARP
+            if src_ip not in ip_stats['senders']:
+                ip_stats['senders'][src_ip] = {'bytes': 0, 'packets': 0}
+            ip_stats['senders'][src_ip]['bytes'] += packet_size
+            ip_stats['senders'][src_ip]['packets'] += 1
+            # Update receiver stats for ARP
+            if dst_ip not in ip_stats['receivers']:
+                ip_stats['receivers'][dst_ip] = {'bytes': 0, 'packets': 0}
+            ip_stats['receivers'][dst_ip]['bytes'] += packet_size
+            ip_stats['receivers'][dst_ip]['packets'] += 1
+
     else:
         protocol_counts['Other'] += 1
     
@@ -301,7 +317,8 @@ def get_protocol_stats():
     
     return jsonify({
         'counts': protocol_counts,
-        'percentages': percentages
+        'percentages': percentages,
+        'total_packets': total
     })
 
 @app.route('/top-talkers')

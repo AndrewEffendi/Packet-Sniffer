@@ -5,6 +5,9 @@ function updateProtocolChart() {
     fetch('/protocol-stats')
         .then(response => response.json())
         .then(data => {
+            // Update total packets count
+            document.getElementById('total-packets').textContent = data.total_packets;
+            
             const ctx = document.getElementById('protocolChart').getContext('2d');
             
             // Define protocol order (Other will be automatically last)
