@@ -77,7 +77,39 @@
     <h1>Potential Threats</h1>
     <div id="threatLog"></div>
     <h1>Captured Packets</h1>
-    <table id="packetsTable"></table>
+    <div class="packets-control">
+        <div class="page-size-control">
+            <label for="pageSize">Packets per page:</label>
+            <select id="pageSize">
+                <option value="100" selected>100</option>
+                <option value="500">500</option>
+                <option value="1000">1000</option>
+            </select>
+        </div>
+        <div class="pagination">
+            <button id="prevPage" onclick="prevPage()">Previous</button>
+            <select id="pageSelect" onchange="goToPage(this.value)">
+            </select>
+            <button id="nextPage" onclick="nextPage()">Next</button>
+            <span id="totalPackets"></span>
+        </div>
+    </div>
+    <div class="table-container">
+        <table id="packetsTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable('index')">No.</th>
+                    <th onclick="sortTable('elapsed_time')">Time</th>
+                    <th onclick="sortTable('source')">Source</th>
+                    <th onclick="sortTable('destination')">Destination</th>
+                    <th onclick="sortTable('protocol_name')">Protocol</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Packets will be inserted here -->
+            </tbody>
+        </table>
+    </div>
 
     <!-- Modal -->
     <div id="myModal" class="modal">
