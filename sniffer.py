@@ -9,6 +9,7 @@ import pcap_utils
 import unpack_utils
 import packet_utils
 import threat_detection
+from traffic_analysis import TrafficAnalyzer
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -18,21 +19,7 @@ sniffing_thread = None
 is_sniffing = False
 packet_type = "all"  # Global variable to store the packet type (default: all)
 start_time = -1
-total_bytes_captured = 0
-last_bandwidth_check = None
-bytes_since_last_check = 0
-protocol_counts = {
-    'TCP': 0,
-    'UDP': 0,
-    'ICMP': 0,
-    'ARP': 0,
-    'Other': 0
-}
-# store ip address status for top talkers
-ip_stats = {
-    'senders': {},    # {ip: {'bytes': 0, 'packets': 0}}
-    'receivers': {}   # {ip: {'bytes': 0, 'packets': 0}}
-}
+traffic_analyzer = TrafficAnalyzer()
 # Store packet data
 packet_data = []
 packet_detail = []
@@ -48,12 +35,13 @@ def update_packet_detail(raw_data):
     packet_detail.append('<br>'.join(packet_info))
 
 def update_packet_data(timestamp, raw_data):
-    global start_time, total_bytes_captured, bytes_since_last_check, protocol_counts, ip_stats
+    global start_time
     packet_overview = {}
 
     # if start time empty, this packet is the first packet, with start time 0.0
     if(start_time == -1):
         start_time = timestamp
+        traffic_analyzer.start_capture(timestamp)
     
     # Calculate the elapsed time in seconds since the program started (6 d.p.)
     elapsed_time = timestamp - start_time
@@ -64,58 +52,35 @@ def update_packet_data(timestamp, raw_data):
 
     # update total bytes captured
     packet_size = len(raw_data)
-    total_bytes_captured += packet_size
-    bytes_since_last_check += packet_size
-
+    traffic_analyzer.update_bandwidth_stats(packet_size)
 
     # Initialize packet_overview with source, destination, protocol, and elapsed time
     if eth_proto == 0x0800:  # IPv4
         packet_overview = packet_utils.build_IPv4_overview(raw_data, index, formatted_elapsed_time)
         update_packet_detail(raw_data)
-        # update protocol counts
+        # Get IP addresses and update protocol stats
         version, header_length, ttl, proto, src_ip, dst_ip, data = unpack_utils.ipv4_packet(data)
         if proto == 6:
-            protocol_counts['TCP'] += 1
+            traffic_analyzer.update_protocol_stats('TCP')
         elif proto == 17:
-            protocol_counts['UDP'] += 1
+            traffic_analyzer.update_protocol_stats('UDP')
         elif proto == 1:
-            protocol_counts['ICMP'] += 1
+            traffic_analyzer.update_protocol_stats('ICMP')
         else:
-            protocol_counts['Other'] += 1
-
-        # Skip localhost addresses
-        if src_ip != '127.0.0.1' and dst_ip != '127.0.0.1':  # Only process non-localhost traffic
-            if src_ip not in ip_stats['senders']:
-                ip_stats['senders'][src_ip] = {'bytes': 0, 'packets': 0}
-            ip_stats['senders'][src_ip]['bytes'] += packet_size
-            ip_stats['senders'][src_ip]['packets'] += 1
-            # Update receiver stats
-            if dst_ip not in ip_stats['receivers']:
-                ip_stats['receivers'][dst_ip] = {'bytes': 0, 'packets': 0}
-            ip_stats['receivers'][dst_ip]['bytes'] += packet_size
-            ip_stats['receivers'][dst_ip]['packets'] += 1
+            traffic_analyzer.update_protocol_stats('Other')
+            
+        traffic_analyzer.update_ip_stats(src_ip, dst_ip, packet_size)
 
     elif eth_proto == 0x0806:  # ARP
         packet_overview = packet_utils.build_ARP_overview(raw_data, index, formatted_elapsed_time)
         update_packet_detail(raw_data)
-        protocol_counts['ARP'] += 1
-
+        traffic_analyzer.update_protocol_stats('ARP')
+        
+        # Get ARP addresses and update stats
         hw_type, proto_type, hw_size, proto_size, opcode, src_mac, src_ip, dst_mac, dst_ip, _ = unpack_utils.arp_packet(data)
-        # Skip localhost addresses
-        if src_ip != '127.0.0.1' and dst_ip != '127.0.0.1':
-            # Update sender stats for ARP
-            if src_ip not in ip_stats['senders']:
-                ip_stats['senders'][src_ip] = {'bytes': 0, 'packets': 0}
-            ip_stats['senders'][src_ip]['bytes'] += packet_size
-            ip_stats['senders'][src_ip]['packets'] += 1
-            # Update receiver stats for ARP
-            if dst_ip not in ip_stats['receivers']:
-                ip_stats['receivers'][dst_ip] = {'bytes': 0, 'packets': 0}
-            ip_stats['receivers'][dst_ip]['bytes'] += packet_size
-            ip_stats['receivers'][dst_ip]['packets'] += 1
-
+        traffic_analyzer.update_ip_stats(src_ip, dst_ip, packet_size)
     else:
-        protocol_counts['Other'] += 1
+        traffic_analyzer.update_protocol_stats('Other')
     
     # Append the current packet info to the list
     packet_data.append(packet_overview)
@@ -206,13 +171,6 @@ def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
             sniffer.close()
             print("Sniffing stopped.")
 
-def format_bytes(bytes):
-    for unit in ['B', 'KB', 'MB', 'GB']:
-        if bytes < 1024:
-            return f"{bytes:.2f} {unit}"
-        bytes /= 1024
-    return f"{bytes:.2f} TB"
-
  
 # Web route to display captured packets
 @app.route('/')
@@ -225,7 +183,7 @@ def packets():
 
 @app.route('/start', methods=['POST'])
 def start_sniffing():
-    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log, total_bytes_captured, last_bandwidth_check, bytes_since_last_check, protocol_counts, ip_stats
+    global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
     dst_ip = data.get('dst_ip') # Get dest_ip from the request
@@ -236,17 +194,7 @@ def start_sniffing():
         packet_data = []
         packet_detail = []
         threat_log = []
-        total_bytes_captured = 0
-        last_bandwidth_check = None
-        bytes_since_last_check = 0
-        protocol_counts = {
-            'TCP': 0,
-            'UDP': 0,
-            'ICMP': 0,
-            'ARP': 0,
-            'Other': 0
-        }
-        ip_stats = {'senders': {}, 'receivers': {}}
+        traffic_analyzer.reset_stats()
         protocols = set()
         if 'icmp' in packet_types:
             protocols.add(1)  # ICMP
@@ -275,70 +223,15 @@ def stop_sniffing():
 
 @app.route('/bandwidth')
 def get_bandwidth():
-    global start_time, total_bytes_captured, last_bandwidth_check, bytes_since_last_check, is_sniffing
-    current_time = time.time()
-    
-    if not is_sniffing or start_time == -1:
-        return jsonify({
-            "total_bytes": total_bytes_captured,
-            "throughput": 0,
-            "formatted_total": format_bytes(total_bytes_captured),
-            "formatted_throughput": "0 B/s"
-        })
-    
-    # Calculate current throughput using a sliding window
-    if last_bandwidth_check is None:
-        throughput = 0
-        last_bandwidth_check = current_time
-    else:
-        time_diff = current_time - last_bandwidth_check
-        if time_diff > 0:
-            throughput = bytes_since_last_check / time_diff
-            # Reset for next calculation
-            bytes_since_last_check = 0
-            last_bandwidth_check = current_time
-        else:
-            throughput = 0
-    
-    return jsonify({
-        "total_bytes": total_bytes_captured,
-        "throughput": throughput,
-        "formatted_total": format_bytes(total_bytes_captured),
-        "formatted_throughput": format_bytes(throughput) + "/s",
-    })
+    return jsonify(traffic_analyzer.get_bandwidth_stats(is_sniffing))
 
 @app.route('/protocol-stats')
 def get_protocol_stats():
-    total = sum(protocol_counts.values())
-    if total == 0:
-        percentages = {proto: 0 for proto in protocol_counts}
-    else:
-        percentages = {proto: (count/total)*100 for proto, count in protocol_counts.items()}
-    
-    return jsonify({
-        'counts': protocol_counts,
-        'percentages': percentages,
-        'total_packets': total
-    })
+    return jsonify(traffic_analyzer.get_protocol_stats())
 
 @app.route('/top-talkers')
 def get_top_talkers():
-    def get_top_ips(ip_dict, limit=5):
-        # Sort IPs by bytes and get top ones
-        sorted_ips = sorted(ip_dict.items(), 
-                          key=lambda x: x[1]['bytes'], 
-                          reverse=True)[:limit]
-        return [{
-            'ip': ip,
-            'bytes': stats['bytes'],
-            'packets': stats['packets'],
-            'formatted_bytes': format_bytes(stats['bytes'])
-        } for ip, stats in sorted_ips]
-
-    return jsonify({
-        'top_senders': get_top_ips(ip_stats['senders']),
-        'top_receivers': get_top_ips(ip_stats['receivers'])
-    })
+    return jsonify(traffic_analyzer.get_top_talkers())
 
 
 # Argument parser to specify protocols and source IP filter
