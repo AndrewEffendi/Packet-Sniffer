@@ -9,6 +9,7 @@ import pcap_utils
 import unpack_utils
 import packet_utils
 import threat_detection
+import perf_metric
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -94,6 +95,23 @@ def run_threat_detection_IPv4(proto, data, src_ip, dst_ip, timestamp):
         if (syn_flood_threat):
             threat_log.append(syn_flood_threat)
 
+def run_perf_metric_IPv4(proto, data, src_ip, dst_ip, timestamp): 
+    if proto == 6: #TCP
+        src_port, dst_port, sequence, acknowledgment, offset, flags, data = unpack_utils.tcp_segment(data)
+
+        # Build a structured packet dictionary
+        packet_info = {
+            'src_ip': src_ip,
+            'seq_num': sequence,
+            'flags': flags  # Use flags parsed from TCP
+        }
+
+        # calc latency and jitter
+        perf_metric.calculate_latency(packet_info, timestamp)
+        perf_metric.calculate_jitter()
+        perf_metric.detect_retransmission(packet_info)
+        perf_metric.detect_out_of_order_packet(packet_info)
+
 # Main sniffer function
 def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
     global is_sniffing, packet_type, start_time
@@ -129,6 +147,7 @@ def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
                         
                         # run threat detection
                         run_threat_detection_IPv4(proto, data, src_ip, dst_ip, timestamp)
+                        run_perf_metric_IPv4(proto, data, src_ip, dst_ip, timestamp)
 
                 # Parse ARP packets
                 elif eth_proto == 0x0806:  # ARP
