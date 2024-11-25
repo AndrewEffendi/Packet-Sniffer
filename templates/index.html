@@ -31,10 +31,85 @@
         <button class="start-btn" onclick="sendStartRequest()">Start Sniffing</button>
         <button class="stop-btn" onclick="sendStopRequest()">Stop Sniffing</button>
     </div>
+    <div class="bandwidth-info">
+        <p>Total  Captured Packets: <span id="total-packets">0</span></p>
+        <p>Total Captured Size: <span id="total-bytes">0 B</span></p>
+        <p>Current Throughput: <span id="current-throughput">0 B/s</span></p>
+    </div>
+    <div class="protocol-stats">
+        <div class="chart-container">
+            <canvas id="protocolChart"></canvas>
+        </div>
+    </div>
+    <div class="top-talkers">
+        <div class="talkers-section">
+            <h3>Top Senders</h3>
+            <table class="talkers-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>IP Address</th>
+                        <th>Data Sent</th>
+                        <th>Packets</th>
+                    </tr>
+                </thead>
+                <tbody id="top-senders-body">
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="talkers-section">
+            <h3>Top Receivers</h3>
+            <table class="talkers-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>IP Address</th>
+                        <th>Data Received</th>
+                        <th>Packets</th>
+                    </tr>
+                </thead>
+                <tbody id="top-receivers-body">
+                </tbody>
+            </table>
+        </div>
+    </div>
     <h1>Potential Threats</h1>
     <div id="threatLog"></div>
     <h1>Captured Packets</h1>
-    <table id="packetsTable"></table>
+    <div class="packets-control">
+        <div class="page-size-control">
+            <label for="pageSize">Packets per page:</label>
+            <select id="pageSize">
+                <option value="100" selected>100</option>
+                <option value="500">500</option>
+                <option value="1000">1000</option>
+            </select>
+        </div>
+        <div class="pagination">
+            <button id="prevPage" onclick="prevPage()">Previous</button>
+            <select id="pageSelect" onchange="goToPage(this.value)">
+            </select>
+            <button id="nextPage" onclick="nextPage()">Next</button>
+            <span id="totalPackets"></span>
+        </div>
+    </div>
+    <div class="table-container">
+        <table id="packetsTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable('index')">No.</th>
+                    <th onclick="sortTable('elapsed_time')">Time</th>
+                    <th onclick="sortTable('source')">Source</th>
+                    <th onclick="sortTable('destination')">Destination</th>
+                    <th onclick="sortTable('protocol_name')">Protocol</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Packets will be inserted here -->
+            </tbody>
+        </table>
+    </div>
 
     <!-- Modal -->
     <div id="myModal" class="modal">
@@ -45,5 +120,23 @@
         </div>
     </div>
     <script src="/static/js/scripts.js"></script>
+    <script>
+        // Add bandwidth monitoring
+        function updateBandwidth() {
+            setInterval(() => {
+                fetch('/bandwidth')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('total-bytes').textContent = data.formatted_total;
+                        document.getElementById('current-throughput').textContent = data.formatted_throughput;
+                    });
+            }, 1000);
+        }
+
+        updateBandwidth();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/traffic_analysis_scripts.js') }}"></script>
+    
 </body>
 </html>

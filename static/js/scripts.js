@@ -1,6 +1,9 @@
 let modal; // Modal element
 let packetData = []; // Store packet data
 let sortDirection = {}; // Track sort direction for each column
+let currentPage = 1;
+let pageSize = 100;
+let totalPages = 1;
 
 // Fetch packet data and render table
 function fetchPackets() {
@@ -31,23 +34,40 @@ function renderThreatLog(threatLog) {
 // Render table with sorted packet data
 function renderTable(data, detail) {
     const table = document.getElementById('packetsTable');
-    table.innerHTML = ''; // Clear previous entries
+    const tbody = table.querySelector('tbody') || table.createTBody();
+    tbody.innerHTML = '';  // Clear previous entries
 
-    // Create table headers with sorting enabled
-    const headerRow = table.insertRow();
-    headerRow.innerHTML = `
-        <th onclick="sortTable('index')">No.</th>
-        <th onclick="sortTable('elapsed_time')">Time</th>
-        <th onclick="sortTable('source')">Source</th>
-        <th onclick="sortTable('destination')">Destination</th>
-        <th onclick="sortTable('protocol_name')">Protocol</th>
-    `;
+    // Calculate pagination
+    totalPages = Math.ceil(data.length / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, data.length);
+
+    // Update page selector and info
+    updatePageSelector();
+    document.getElementById('totalPackets').textContent = 
+        `Total: ${data.length} packets (${totalPages} pages)`;
+    
+    // Update pagination buttons
+    document.getElementById('prevPage').disabled = currentPage === 1;
+    document.getElementById('nextPage').disabled = currentPage === totalPages;
+
+    // Get current page's data
+    const pageData = data.slice(startIndex, endIndex);
+    const pageDetail = detail.slice(startIndex, endIndex);
 
     // Add packet data to the table
-    data.forEach((packet, index) => {
-        const row = table.insertRow();
+    pageData.forEach((packet, index) => {
+        const row = tbody.insertRow();
+        const absoluteIndex = startIndex + index;
+        
+        let protocolClass = 'other';
+        if (packet.protocol_name) {
+            protocolClass = packet.protocol_name.toLowerCase().trim();
+        }
+        row.className = `protocol-${protocolClass}`;
+        
         row.innerHTML = `
-            <td>${packet.index + 1}</td>
+            <td>${absoluteIndex + 1}</td>
             <td>${packet.elapsed_time}</td>
             <td>${packet.source}</td>
             <td>${packet.destination}</td>
@@ -56,10 +76,10 @@ function renderTable(data, detail) {
 
         // Add click event listener to the row
         row.addEventListener('click', () => {
-            if (detail && detail[index]) {
-                showPacketDetails(detail[index]);
+            if (pageDetail[index]) {
+                showPacketDetails(pageDetail[index]);
             } else {
-                console.error("No details found for packet at index:", index);
+                console.error("No details found for packet at index:", absoluteIndex);
             }
         });
     });
@@ -75,7 +95,7 @@ function sortTable(column) {
         return 0;
     });
 
-    renderTable(packetData);
+    renderTable(packetData, packetDetail);
 }
 
 // Show packet details in the modal
@@ -116,12 +136,20 @@ async function sendStartRequest() {
     if (document.getElementById('arp').checked) selectedPacketTypes.push("arp");
 
     try {
+        // Reset pagination when starting new capture
+        currentPage = 1;
+        
         const response = await fetch('/start', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ src_ip: srcIp, dst_ip: dstIp, pcap_filename: pcapFilename, packet_types: selectedPacketTypes })
+            body: JSON.stringify({ 
+                src_ip: srcIp, 
+                dst_ip: dstIp, 
+                pcap_filename: pcapFilename, 
+                packet_types: selectedPacketTypes 
+            })
         });
         const data = await response.json();
         alert(data.status);
@@ -145,4 +173,46 @@ function toggleAllCheckboxes(selectAllCheckbox) {
     checkboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
     });
+}
+
+//pagination control
+function prevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderTable(packetData, packetDetail);
+    }
+}
+
+function nextPage() {
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderTable(packetData, packetDetail);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('pageSize').addEventListener('change', function(e) {
+        pageSize = parseInt(e.target.value);
+        currentPage = 1;  // Reset to first page
+        renderTable(packetData, packetDetail);
+    });
+});
+
+function updatePageSelector() {
+    const pageSelect = document.getElementById('pageSelect');
+    pageSelect.innerHTML = '';
+    
+    for (let i = 1; i <= totalPages; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.text = `Page ${i} of ${totalPages}`;
+        option.selected = i === currentPage;
+        pageSelect.appendChild(option);
+    }
+}
+
+// go to specific page
+function goToPage(page) {
+    currentPage = parseInt(page);
+    renderTable(packetData, packetDetail);
 }
