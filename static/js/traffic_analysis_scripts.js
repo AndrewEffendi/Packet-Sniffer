@@ -1,8 +1,3 @@
-const socket = io(); // Initialize socket connection
-socket.on('message', (data) => {
-    console.log(data.data); // Log when the socket is connected
-});
-
 // Protocol Chart initialization
 let protocolChart = null;
 
@@ -103,6 +98,99 @@ function updateTopTalkers() {
         });
 }
 
+// Throughput Line Chart initialization
+let throughputChart = null;
+let chart_interval = 100;
+
+// Function to fetch throughput data from the server
+function UpdatethroughputChart() {
+    fetch('/Update_line_chart')  // Adjust the endpoint as necessary
+        .then(response => response.json())
+        .then(data => {
+            const throughput_data = data.throughput_data; 
+            const timestamps = data.timestamp; 
+            if (throughput_data.length!=timestamps.length){
+                throw new Error("Throughput Chart: two arrary not have same length");
+            }
+
+            if (throughput_data.length < chart_interval){
+                const additionlength = chart_interval - throughput_data.length;
+                for (let i=timestamps.length;i<chart_interval;i++)
+                    timestamps.push(i)
+                for (let i = 0; i < additionlength; i++){
+                    throughput_data.push(null)
+                }
+            }
+
+            // Update chart
+            const ctx = document.getElementById('throughputChart').getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (throughputChart) {
+                throughputChart.destroy();
+            }
+
+            // Create new chart
+            throughputChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timestamps.slice(-chart_interval), 
+                    datasets: [{
+                        label: 'Throughput (Bytes)',
+                        data: throughput_data.slice(-chart_interval), 
+                        borderColor: '#2c3e50',
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 0,
+                        lineTension: 0.1
+                    }]
+                },
+                options: {
+                    animation: false, // Disable animations
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e0e0e0'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (seconds)'
+                            },
+                            grid: {
+                                color: '#e0e0e0'
+                            }
+                        }
+                    },
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Real-time Network Throughput per Second'
+                        },
+                        tooltip: {
+                            backgroundColor: '#ffffff',
+                            titleColor: '#2c3e50',
+                            bodyColor: '#2c3e50'
+                        }
+                    }
+                }
+            });
+            
+            // Hide the chart if there is no data
+            if (throughput_data.every(value => value === null)) {
+                ctx.canvas.style.display = 'none'; // Hide the chart canvas
+            } else {
+                ctx.canvas.style.display = 'block'; // Show the chart canvas
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching throughput data:', error);
+        });
+}
+
 // Start updating the charts when the page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Update protocol chart every second
@@ -110,80 +198,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update top talkers every second
     setInterval(updateTopTalkers, 1000);
-});
 
-// Throughput Line Chart initialization
-let throughputChart = null;
-
-// Monitor the update
-socket.on('throughput_update', (data) => {
-    throughputData = data.throughput_data; 
-    timestamps = data.timestamp; 
-    console.log(timestamps)
-
-    // Update chart
-    const ctx = document.getElementById('throughputChart').getContext('2d');
-
-    // Destroy existing chart if it exists
-    if (throughputChart) {
-        throughputChart.destroy();
-    }
-
-    // Create new chart
-    throughputChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: timestamps, 
-            datasets: [{
-                label: 'Throughput (Bytes/s)',
-                data: throughputData, 
-                borderColor: '#2c3e50',
-                borderWidth: 2,
-                fill: false,
-                pointRadius: 0,
-                lineTension: 0.1
-            }]
-        },
-        options: {
-            animation: false, // Disable animations
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: '#e0e0e0'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Time (seconds)'
-                    },
-                    grid: {
-                        color: '#e0e0e0'
-                    }
-                }
-            },
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Real-time Network Throughput per Second'
-                },
-                tooltip: {
-                    backgroundColor: '#ffffff',
-                    titleColor: '#2c3e50',
-                    bodyColor: '#2c3e50'
-                }
-            }
-        }
-    });
-    
-    // Hide the chart if there is no data
-    if (throughputData.every(value => value === null)) {
-        ctx.canvas.style.display = 'none'; // Hide the chart canvas
-    } else {
-        ctx.canvas.style.display = 'block'; // Show the chart canvas
-    }
+    // Update thoughput line chart every second
+    setInterval(UpdatethroughputChart, 1000);
 });
 
 

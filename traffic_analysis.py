@@ -1,13 +1,11 @@
 import time
 from flask import jsonify
-from flask_socketio import SocketIO, emit
 import threading
 
 chart_interval = 100
 
 class TrafficAnalyzer:
-    def __init__(self,socketio):
-        self.socketio = socketio
+    def __init__(self):
         self.reset_stats()
 
     def reset_stats(self):
@@ -27,10 +25,8 @@ class TrafficAnalyzer:
             'senders': {},    # {ip: {'bytes': 0, 'packets': 0}}
             'receivers': {}   # {ip: {'bytes': 0, 'packets': 0}}
         }
-        self.throughputData = [None] * chart_interval
-        self.timestamps = list(range(chart_interval))
-        self.running = False
-        self.emission_thread = None
+        self.throughputData = []
+        self.timestamps = []
 
 
     def start_capture(self, timestamp):
@@ -44,84 +40,16 @@ class TrafficAnalyzer:
         self.bytes_since_last_check += packet_size
 
         # sum packet size as per second
-        current_second = int(elapsed_time)
-        # Check if the current second exceeds the last timestamp
-        if current_second > self.timestamps[-1]:
-            # Create new timestamps and throughput data
-            new_timestamps = list(range(self.timestamps[-1] + 1, current_second + 1))
-            new_throughputData = [None] * len(new_timestamps)  # Use None instead of null
+        packet_second = int(elapsed_time)
 
-            # Extend the timestamps and throughput data
-            self.timestamps.extend(new_timestamps)
-            self.throughputData.extend(new_throughputData)
+        while len(self.throughputData) <= packet_second:
+            self.throughputData.append(None)
+            self.timestamps.append(len(self.timestamps))  
 
-            # Limit the size of timestamps and throughputData to chart_interval
-            if len(self.timestamps) > chart_interval:
-                self.timestamps = self.timestamps[-chart_interval:]  # Keep only the last chart_interval timestamps
-                self.throughputData = self.throughputData[-chart_interval:]
-        # Calculate the index for the current second
-        current_index = self.timestamps.index(current_second)
-
-        # Update the packet size for that second
-        if self.throughputData[current_index] is None:
-            self.throughputData[current_index] = packet_size  # Initialize if None
+        if self.throughputData[packet_second]:
+            self.throughputData[packet_second] += packet_size
         else:
-            self.throughputData[current_index] += packet_size
-
-        # if current_second != self.last_updated_second :
-        #     # last_total_packet_sizes = self.packet_sizes_per_second
-        #     self.socketio.emit('throughput_update', {'throughput': self.packet_sizes_per_second})
-        #     self.packet_sizes_per_second = packet_size
-        #     self.last_updated_second = current_second
-        #     #return last_total_packet_sizes
-        # else:
-        #     self.packet_sizes_per_second += packet_size
-        # #return None
-
-    def emit_throughput_stats(self):
-        """Emit throughput statistics at regular intervals"""
-        while self.running:
-            current_time = time.time()
-            elapsed_time = int(current_time - self.start_time)
-            if elapsed_time < 1:
-                time.sleep(0.5)
-                continue
-
-            # Emit the finished seconds
-            if elapsed_time > self.timestamps[-1]:
-                new_timestamps = list(range(self.timestamps[-1] + 1, elapsed_time ))
-                new_throughputData = [0] * len(new_timestamps) 
-                self.timestamps.extend(new_timestamps)
-                self.throughputData.extend(new_throughputData)
-
-                # Limit the size of timestamps and throughputData to chart_interval
-                if len(self.timestamps) > chart_interval:
-                    self.timestamps = self.timestamps[-chart_interval:]  # Keep only the last chart_interval timestamps
-                    self.throughputData = self.throughputData[-chart_interval:]
-
-                # Emit all throughput data finished
-                self.socketio.emit('throughput_update', {
-                    'timestamp': self.timestamps,
-                    'throughput_data': self.throughputData
-                })
-            else:
-                # Find the index of the current elapsed time
-                index = self.timestamps.index(elapsed_time)
-
-                if elapsed_time == self.timestamps[-1]:
-                    # Emit data up to the last timestamp
-                    self.socketio.emit('throughput_update', {
-                        'timestamp': self.timestamps[:index],
-                        'throughput_data': self.throughputData[:index]
-                    })
-                else:
-                    # Emit data up to the current elapsed time and pad with None
-                    padded_throughput_data = self.throughputData[:index] + [None] * (chart_interval - len(self.throughputData[:index]))
-                    self.socketio.emit('throughput_update', {
-                        'timestamp': self.timestamps,
-                        'throughput_data': padded_throughput_data
-                    })
-            time.sleep(1)  # Emit every second
+            self.throughputData[packet_second] = packet_size
 
     def update_protocol_stats(self, protocol):
         """Update protocol counter"""
@@ -211,6 +139,38 @@ class TrafficAnalyzer:
         return {
             'top_senders': get_top_ips(self.ip_stats['senders']),
             'top_receivers': get_top_ips(self.ip_stats['receivers'])
+        }
+    
+    def get_throughput_data(self,is_sniffing):
+        """Get throughput data for the chart"""
+        # process the data so that 0 for no packets for previous time, and none for future time
+
+        if self.start_time == -1:
+            return {
+                'throughput_data': [],
+                'timestamp': []
+            }
+        
+        if not is_sniffing:
+            return {
+            'throughput_data': self.throughputData,
+            'timestamp': self.timestamps 
+        }
+
+        current_second = int(time.time()-self.start_time)
+
+        while len(self.throughputData) <= current_second-1:
+            self.throughputData.append(0)
+            self.timestamps.append(len(self.timestamps))  
+
+        # subtitue previous array to 0, only need to check 20 elments since this will be triggered every second
+        for i in range(current_second-1, max(-1,current_second-11), -1):
+            if self.throughputData[i] is None:
+                self.throughputData[i] = 0
+        
+        return {
+            'throughput_data': self.throughputData,
+            'timestamp': self.timestamps 
         }
 
     @staticmethod

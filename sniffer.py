@@ -3,7 +3,6 @@ import socket
 import textwrap
 import time
 from flask import Flask, render_template, render_template_string, request, jsonify
-from flask_socketio import SocketIO
 import threading
 
 import pcap_utils
@@ -14,14 +13,13 @@ from traffic_analysis import TrafficAnalyzer
 
 # Initialize Flask app
 app = Flask(__name__)
-socketio = SocketIO(app)
 
 # Initialize
 sniffing_thread = None
 is_sniffing = False
 packet_type = "all"  # Global variable to store the packet type (default: all)
 start_time = -1
-traffic_analyzer = TrafficAnalyzer(socketio)
+traffic_analyzer = TrafficAnalyzer()
 # Store packet data
 packet_data = []
 packet_detail = []
@@ -30,9 +28,6 @@ threat_log = []
 # default
 DEFAULT_PCAP_FILENAME = 'captured_packets'
 
-@socketio.on('connect')
-def connect():
-    socketio.emit('message',{'data':'Flask socket connected successfully!'})
 
 def update_packet_detail(raw_data):
     packet_info = packet_utils.build_packet_info(raw_data)
@@ -231,7 +226,6 @@ def start_sniffing():
             protocols = {1, 6, 17, 2054} #all
         sniffing_thread = threading.Thread(target=sniff_packets, args=(protocols, src_ip, dst_ip, pcap_filename, min_packet_size, max_packet_size))
         sniffing_thread.start()
-        traffic_analyzer.start_emission() 
         status_message = f"Sniffing started with source IP: {src_ip or 'any'}, destination IP: {dst_ip or 'any'} and packet type: {packet_types}"
         return jsonify({"status": status_message})
     return jsonify({"status": "Sniffing already running"})
@@ -242,7 +236,6 @@ def stop_sniffing():
     if is_sniffing:
         is_sniffing = False
         sniffing_thread.join()
-        traffic_analyzer.stop_emission()
         return jsonify({"status": "Sniffing stopped"})
     return jsonify({"status": "Sniffing was not running"})
 
@@ -258,11 +251,14 @@ def get_protocol_stats():
 def get_top_talkers():
     return jsonify(traffic_analyzer.get_top_talkers())
 
+@app.route('/Update_line_chart')
+def get_throughput_data(): 
+    return jsonify(traffic_analyzer.get_throughput_data(is_sniffing))
 
 # Argument parser to specify protocols and source IP filter
 def main():
     # Start the app
-    socketio.run(app, debug=True, use_reloader=False)
+    app.run(debug=True, use_reloader=False)
 
 if __name__ == '__main__':
     # suppress Flask’s built-in development server
