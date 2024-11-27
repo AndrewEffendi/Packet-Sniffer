@@ -121,6 +121,13 @@ button:hover {
     margin: 20px auto;
 }
 
+.chart-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+}
+
 .bandwidth-info {
   margin: 20px;
   padding: 15px;
