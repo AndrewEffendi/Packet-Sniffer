@@ -1,6 +1,9 @@
 import time
 from flask import jsonify
 from flask_socketio import SocketIO, emit
+import threading
+
+chart_interval = 100
 
 class TrafficAnalyzer:
     def __init__(self,socketio):
@@ -24,8 +27,10 @@ class TrafficAnalyzer:
             'senders': {},    # {ip: {'bytes': 0, 'packets': 0}}
             'receivers': {}   # {ip: {'bytes': 0, 'packets': 0}}
         }
-        self.packet_sizes_per_second = 0
-        self.last_updated_second = 0
+        self.throughputData = [None] * chart_interval
+        self.timestamps = list(range(chart_interval))
+        self.running = False
+        self.emission_thread = None
 
 
     def start_capture(self, timestamp):
@@ -37,18 +42,86 @@ class TrafficAnalyzer:
         """Update bandwidth-related statistics"""
         self.total_bytes += packet_size
         self.bytes_since_last_check += packet_size
+
         # sum packet size as per second
         current_second = int(elapsed_time)
-        if current_second != self.last_updated_second :
-            # last_total_packet_sizes = self.packet_sizes_per_second
-            self.socketio.emit('throughput_update', {'throughput': self.packet_sizes_per_second})
-            self.packet_sizes_per_second = packet_size
-            self.last_updated_second = current_second
-            #return last_total_packet_sizes
-        else:
-            self.packet_sizes_per_second += packet_size
-        #return None
+        # Check if the current second exceeds the last timestamp
+        if current_second > self.timestamps[-1]:
+            # Create new timestamps and throughput data
+            new_timestamps = list(range(self.timestamps[-1] + 1, current_second + 1))
+            new_throughputData = [None] * len(new_timestamps)  # Use None instead of null
 
+            # Extend the timestamps and throughput data
+            self.timestamps.extend(new_timestamps)
+            self.throughputData.extend(new_throughputData)
+
+            # Limit the size of timestamps and throughputData to chart_interval
+            if len(self.timestamps) > chart_interval:
+                self.timestamps = self.timestamps[-chart_interval:]  # Keep only the last chart_interval timestamps
+                self.throughputData = self.throughputData[-chart_interval:]
+        # Calculate the index for the current second
+        current_index = self.timestamps.index(current_second)
+
+        # Update the packet size for that second
+        if self.throughputData[current_index] is None:
+            self.throughputData[current_index] = packet_size  # Initialize if None
+        else:
+            self.throughputData[current_index] += packet_size
+
+        # if current_second != self.last_updated_second :
+        #     # last_total_packet_sizes = self.packet_sizes_per_second
+        #     self.socketio.emit('throughput_update', {'throughput': self.packet_sizes_per_second})
+        #     self.packet_sizes_per_second = packet_size
+        #     self.last_updated_second = current_second
+        #     #return last_total_packet_sizes
+        # else:
+        #     self.packet_sizes_per_second += packet_size
+        # #return None
+
+    def emit_throughput_stats(self):
+        """Emit throughput statistics at regular intervals"""
+        while self.running:
+            current_time = time.time()
+            elapsed_time = int(current_time - self.start_time)
+            if elapsed_time < 1:
+                time.sleep(0.5)
+                continue
+
+            # Emit the finished seconds
+            if elapsed_time > self.timestamps[-1]:
+                new_timestamps = list(range(self.timestamps[-1] + 1, elapsed_time ))
+                new_throughputData = [0] * len(new_timestamps) 
+                self.timestamps.extend(new_timestamps)
+                self.throughputData.extend(new_throughputData)
+
+                # Limit the size of timestamps and throughputData to chart_interval
+                if len(self.timestamps) > chart_interval:
+                    self.timestamps = self.timestamps[-chart_interval:]  # Keep only the last chart_interval timestamps
+                    self.throughputData = self.throughputData[-chart_interval:]
+
+                # Emit all throughput data finished
+                self.socketio.emit('throughput_update', {
+                    'timestamp': self.timestamps,
+                    'throughput_data': self.throughputData
+                })
+            else:
+                # Find the index of the current elapsed time
+                index = self.timestamps.index(elapsed_time)
+
+                if elapsed_time == self.timestamps[-1]:
+                    # Emit data up to the last timestamp
+                    self.socketio.emit('throughput_update', {
+                        'timestamp': self.timestamps[:index],
+                        'throughput_data': self.throughputData[:index]
+                    })
+                else:
+                    # Emit data up to the current elapsed time and pad with None
+                    padded_throughput_data = self.throughputData[:index] + [None] * (chart_interval - len(self.throughputData[:index]))
+                    self.socketio.emit('throughput_update', {
+                        'timestamp': self.timestamps,
+                        'throughput_data': padded_throughput_data
+                    })
+            time.sleep(1)  # Emit every second
 
     def update_protocol_stats(self, protocol):
         """Update protocol counter"""
@@ -148,3 +221,17 @@ class TrafficAnalyzer:
                 return f"{bytes:.2f} {unit}"
             bytes /= 1024
         return f"{bytes:.2f} TB"
+    
+    def start_emission(self):
+        """Start the emission thread"""
+        if not self.running:  # Only start if not already running
+            self.running = True
+            self.emission_thread = threading.Thread(target=self.emit_throughput_stats, daemon=True)
+            self.emission_thread.start()
+
+    def stop_emission(self):
+        """Stop the emission thread"""
+        if self.running:  # Only stop if it is running
+            self.running = False
+            if self.emission_thread is not None:
+                self.emission_thread.join()  # Wait for the thread to finish
