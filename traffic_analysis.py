@@ -42,7 +42,6 @@ class TrafficAnalyzer:
         if current_second != self.last_updated_second :
             # last_total_packet_sizes = self.packet_sizes_per_second
             self.socketio.emit('throughput_update', {'throughput': self.packet_sizes_per_second})
-            print("123")
             self.packet_sizes_per_second = packet_size
             self.last_updated_second = current_second
             #return last_total_packet_sizes

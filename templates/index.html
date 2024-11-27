@@ -45,15 +45,18 @@
         <p>Total Captured Size: <span id="total-bytes">0 B</span></p>
         <p>Current Throughput: <span id="current-throughput">0 B/s</span></p>
     </div>
-    <div class="protocol-stats">
-        <div class="chart-container">
-            <canvas id="protocolChart"></canvas>
+    <div class="chart-wrapper">
+        <div class="protocol-stats">
+            <div class="chart-container">
+                <canvas id="protocolChart"></canvas>
+            </div>
         </div>
-    </div>
-    <div class="current-throughput">
-        <h2>Real-time Throughput</h2>
-        <canvas id="throughputChart" width="400" height="200"></canvas>
-        <p>This chart displays the real-time network throughput trend in Bytes per second.</p>
+        <div class="current-throughput">
+            <h2>Real-time Throughput</h2>
+            <div class="chart-container">
+                <canvas id="throughputChart" width="400" height="200"></canvas>
+            </div>
+        </div>
     </div>
     <div class="top-talkers">
         <div class="talkers-section">

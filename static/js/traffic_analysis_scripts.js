@@ -113,23 +113,23 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Throughput Line Chart initialization
+let chart_interval = 100;
 let throughputChart = null;
-let throughputData = []; //store the sum of packet size per second
-let timestamps = []; // horizontal ordinate
-let totalSeconds = 0; // latest seconds
+let throughputData = new Array(chart_interval).fill(null); // Pre-fill with null for chart_interval seconds
+let timestamps = Array.from({ length: chart_interval }, (_, i) => i);
+let totalSeconds = 0; // Latest seconds
 
-// monitor the update
+// Monitor the update
 socket.on('throughput_update', (data) => {
     const currentThroughput = data.throughput;
 
     // Update the new data in the chart
-    throughputData.push(currentThroughput); 
-    timestamps.push(totalSeconds); 
-
-    // We only keep 100 seconds so remove the oldest one
-    if (throughputData.length > 100) {
-        throughputData.shift(); 
-        timestamps.shift(); 
+    if (totalSeconds < chart_interval) {
+        throughputData[totalSeconds] = currentThroughput; // Update the current second
+    } else {
+        // Shift the data to the left if we exceed chart_interval seconds
+        throughputData.shift(); // Remove the oldest data point
+        throughputData.push(currentThroughput); // Add the new data point
     }
 
     // Update chart
@@ -146,22 +146,31 @@ socket.on('throughput_update', (data) => {
         data: {
             labels: timestamps, 
             datasets: [{
-                label: 'Real-time Throughput (Bytes/s)',
+                label: 'Throughput (Bytes/s)',
                 data: throughputData, 
-                borderColor: 'rgba(75, 192, 192, 1)',
+                borderColor: '#2c3e50',
                 borderWidth: 2,
-                fill: false
+                fill: false,
+                pointRadius: 0,
+                lineTension: 0.1
             }]
         },
         options: {
+            animation: false, // Disable animations
             scales: {
                 y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    grid: {
+                        color: '#e0e0e0'
+                    }
                 },
                 x: {
                     title: {
                         display: true,
                         text: 'Time (seconds)'
+                    },
+                    grid: {
+                        color: '#e0e0e0'
                     }
                 }
             },
@@ -169,13 +178,25 @@ socket.on('throughput_update', (data) => {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Network Throughput per Second'
+                    text: 'Real-time Network Throughput per Second'
+                },
+                tooltip: {
+                    backgroundColor: '#ffffff',
+                    titleColor: '#2c3e50',
+                    bodyColor: '#2c3e50'
                 }
             }
         }
     });
 
     totalSeconds++;
+    
+    // Hide the chart if there is no data
+    if (throughputData.every(value => value === null)) {
+        ctx.canvas.style.display = 'none'; // Hide the chart canvas
+    } else {
+        ctx.canvas.style.display = 'block'; // Show the chart canvas
+    }
 });
 
 
