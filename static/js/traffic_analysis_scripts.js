@@ -1,3 +1,8 @@
+const socket = io(); // Initialize socket connection
+socket.on('message', (data) => {
+    console.log(data.data); // Log when the socket is connected
+});
+
 // Protocol Chart initialization
 let protocolChart = null;
 
@@ -98,13 +103,80 @@ function updateTopTalkers() {
         });
 }
 
-// Start updating the chart when the page loads
+// Start updating the charts when the page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Update chart every second
+    // Update protocol chart every second
     setInterval(updateProtocolChart, 1000);
     
     // Update top talkers every second
     setInterval(updateTopTalkers, 1000);
 });
+
+// Throughput Line Chart initialization
+let throughputChart = null;
+let throughputData = []; //store the sum of packet size per second
+let timestamps = []; // horizontal ordinate
+let totalSeconds = 0; // latest seconds
+
+// monitor the update
+socket.on('throughput_update', (data) => {
+    const currentThroughput = data.throughput;
+
+    // Update the new data in the chart
+    throughputData.push(currentThroughput); 
+    timestamps.push(totalSeconds); 
+
+    // We only keep 100 seconds so remove the oldest one
+    if (throughputData.length > 100) {
+        throughputData.shift(); 
+        timestamps.shift(); 
+    }
+
+    // Update chart
+    const ctx = document.getElementById('throughputChart').getContext('2d');
+
+    // Destroy existing chart if it exists
+    if (throughputChart) {
+        throughputChart.destroy();
+    }
+
+    // Create new chart
+    throughputChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timestamps, 
+            datasets: [{
+                label: 'Real-time Throughput (Bytes/s)',
+                data: throughputData, 
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2,
+                fill: false
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time (seconds)'
+                    }
+                }
+            },
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Network Throughput per Second'
+                }
+            }
+        }
+    });
+
+    totalSeconds++;
+});
+
 
 

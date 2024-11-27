@@ -129,6 +129,8 @@ async function sendStartRequest() {
     const srcIp = document.getElementById('src_ip').value;
     const dstIp = document.getElementById('dst_ip').value;
     const pcapFilename = document.getElementById('pcap_filename').value;
+    const minPacketSize = document.getElementById('min_packet_size').value;
+    const maxPacketSize = document.getElementById('max_packet_size').value;
     const selectedPacketTypes = [];
     if (document.getElementById('icmp').checked) selectedPacketTypes.push("icmp");
     if (document.getElementById('tcp').checked) selectedPacketTypes.push("tcp");
@@ -148,7 +150,9 @@ async function sendStartRequest() {
                 src_ip: srcIp, 
                 dst_ip: dstIp, 
                 pcap_filename: pcapFilename, 
-                packet_types: selectedPacketTypes 
+                packet_types: selectedPacketTypes,
+                min_packet_size: minPacketSize,
+                max_packet_size: maxPacketSize
             })
         });
         const data = await response.json();

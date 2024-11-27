@@ -24,6 +24,15 @@
             <input type="checkbox" id="arp" name="packet_type" value="arp" checked> ARP<br>
         </div>
         <div class="input-group">
+            <label for="min_packet_size">Minimum Packet Size (bytes):</label><br>
+            <input type="number" id="min_packet_size" name="min_packet_size" placeholder="e.g., 64">
+        </div>
+        <div class="input-group">
+            <label for="max_packet_size">Maximum Packet Size (bytes):</label><br>
+            <input type="number" id="max_packet_size" name="max_packet_size" placeholder="e.g., 1500">
+        </div>
+        <button class="clear-btn" onclick="clearInputs()">Clean Input</button>
+        <div class="input-group">
             <label for="pcap_filename">PCAP Filename:</label><br>
             <input type="text" id="pcap_filename" name="pcap_filename" placeholder="captured_packets">
             .pcap
@@ -32,7 +41,7 @@
         <button class="stop-btn" onclick="sendStopRequest()">Stop Sniffing</button>
     </div>
     <div class="bandwidth-info">
-        <p>Total  Captured Packets: <span id="total-packets">0</span></p>
+        <p>Total Captured Packets: <span id="total-packets">0</span></p>
         <p>Total Captured Size: <span id="total-bytes">0 B</span></p>
         <p>Current Throughput: <span id="current-throughput">0 B/s</span></p>
     </div>
@@ -40,6 +49,11 @@
         <div class="chart-container">
             <canvas id="protocolChart"></canvas>
         </div>
+    </div>
+    <div class="current-throughput">
+        <h2>Real-time Throughput</h2>
+        <canvas id="throughputChart" width="400" height="200"></canvas>
+        <p>This chart displays the real-time network throughput trend in Bytes per second.</p>
     </div>
     <div class="top-talkers">
         <div class="talkers-section">
@@ -135,8 +149,16 @@
 
         updateBandwidth();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/traffic_analysis_scripts.js') }}"></script>
     
+    <script>
+        function clearInputs() {
+            document.getElementById('min_packet_size').value = ''; // Clean packet size
+            document.getElementById('max_packet_size').value = ''; 
+        }
+    </script>
 </body>
 </html>
