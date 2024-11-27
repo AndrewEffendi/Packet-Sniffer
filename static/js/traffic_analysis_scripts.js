@@ -109,17 +109,15 @@ function UpdatethroughputChart() {
         .then(data => {
             const throughput_data = data.throughput_data; 
             const timestamps = data.timestamp; 
-            if (throughput_data.length!=timestamps.length){
-                throw new Error("Throughput Chart: two arrary not have same length");
+            
+            if (throughput_data === 'not_sniffing') {
+                return;
             }
 
-            if (throughput_data.length < chart_interval){
-                const additionlength = chart_interval - throughput_data.length;
-                for (let i=timestamps.length;i<chart_interval;i++)
-                    timestamps.push(i)
-                for (let i = 0; i < additionlength; i++){
-                    throughput_data.push(null)
-                }
+            if (throughput_data.length !== timestamps.length) {
+                throw new Error("Throughput Chart: two arrays do not have the same length");
+            } else if (throughput_data.length !== chart_interval) {
+                throw new Error("Throughput Chart: array length is not equal to chart interval");
             }
 
             // Update chart
@@ -134,10 +132,10 @@ function UpdatethroughputChart() {
             throughputChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: timestamps.slice(-chart_interval), 
+                    labels: timestamps, 
                     datasets: [{
                         label: 'Throughput (Bytes)',
-                        data: throughput_data.slice(-chart_interval), 
+                        data: throughput_data, 
                         borderColor: '#2c3e50',
                         borderWidth: 2,
                         fill: false,

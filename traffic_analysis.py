@@ -153,8 +153,8 @@ class TrafficAnalyzer:
         
         if not is_sniffing:
             return {
-            'throughput_data': self.throughputData,
-            'timestamp': self.timestamps 
+            'throughput_data': 'not_sniffing',
+            'timestamp': 'not_sniffing'
         }
 
         current_second = int(time.time()-self.start_time)
@@ -167,11 +167,29 @@ class TrafficAnalyzer:
         for i in range(current_second-1, max(-1,current_second-11), -1):
             if self.throughputData[i] is None:
                 self.throughputData[i] = 0
+
+        if len(self.throughputData) < chart_interval:
+            temp_data = self.throughputData
+            temp_timestamps = self.timestamps
+            addition_length = chart_interval - len(temp_data)
+
+            for i in range(len(temp_timestamps), chart_interval):
+                temp_timestamps.append(i)
+
+            for _ in range(addition_length):
+                temp_data.append(None)
+
+            return {
+            'throughput_data': temp_data,
+            'timestamp': temp_timestamps
+            }
         
-        return {
-            'throughput_data': self.throughputData,
-            'timestamp': self.timestamps 
-        }
+        else:
+            return {
+                'throughput_data': self.throughputData[-chart_interval:],
+                'timestamp': self.timestamps[-chart_interval:]
+            }
+
 
     @staticmethod
     def format_bytes(bytes):
