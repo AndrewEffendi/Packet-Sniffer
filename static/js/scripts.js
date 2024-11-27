@@ -61,7 +61,7 @@ function renderTable(data, detail) {
         const absoluteIndex = startIndex + index;
         
         let protocolClass = 'other';
-        if (packet.protocol_name) {
+        if (packet.protocol_type) {
             protocolClass = packet.protocol_type.toLowerCase().trim();
         }
         row.className = `protocol-${protocolClass}`;
