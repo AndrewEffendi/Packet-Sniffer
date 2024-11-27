@@ -145,6 +145,7 @@ function UpdatethroughputChart() {
                 },
                 options: {
                     animation: false, // Disable animations
+                    maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true,
@@ -159,6 +160,11 @@ function UpdatethroughputChart() {
                             },
                             grid: {
                                 color: '#e0e0e0'
+                            },
+                            ticks:{
+                                maxRotation: 60,
+                                minRotation: 0,
+                                autosikip: true
                             }
                         }
                     },
