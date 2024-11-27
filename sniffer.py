@@ -3,6 +3,7 @@ import socket
 import textwrap
 import time
 from flask import Flask, render_template, render_template_string, request, jsonify
+from flask_socketio import SocketIO
 import threading
 
 import pcap_utils
@@ -13,13 +14,14 @@ from traffic_analysis import TrafficAnalyzer
 
 # Initialize Flask app
 app = Flask(__name__)
+socketio = SocketIO(app)
 
 # Initialize
 sniffing_thread = None
 is_sniffing = False
 packet_type = "all"  # Global variable to store the packet type (default: all)
 start_time = -1
-traffic_analyzer = TrafficAnalyzer()
+traffic_analyzer = TrafficAnalyzer(socketio)
 # Store packet data
 packet_data = []
 packet_detail = []
@@ -27,6 +29,10 @@ threat_log = []
 
 # default
 DEFAULT_PCAP_FILENAME = 'captured_packets'
+
+@socketio.on('connect')
+def connect():
+    socketio.emit('message',{'data':'Flask socket connected successfully!'})
 
 def update_packet_detail(raw_data):
     packet_info = packet_utils.build_packet_info(raw_data)
@@ -52,7 +58,7 @@ def update_packet_data(timestamp, raw_data):
 
     # update total bytes captured
     packet_size = len(raw_data)
-    traffic_analyzer.update_bandwidth_stats(packet_size)
+    traffic_analyzer.update_bandwidth_stats(packet_size, elapsed_time)
 
     # Initialize packet_overview with source, destination, protocol, and elapsed time
     if eth_proto == 0x0800:  # IPv4
@@ -120,7 +126,7 @@ def run_threat_detection_IPv4(proto, data, src_ip, dst_ip, timestamp):
             threat_log.append(syn_flood_threat)
 
 # Main sniffer function
-def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
+def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename, min_packet_size=None, max_packet_size=None):
     global is_sniffing, packet_type, start_time
     sniffer = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0003))
 
@@ -138,6 +144,12 @@ def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename):
             while is_sniffing:
                 raw_data, addr = sniffer.recvfrom(65535)
                 timestamp = time.time()
+
+                # filter the packet size
+                packet_size = len(raw_data)
+                if (min_packet_size is not None and packet_size < int(min_packet_size)) or \
+           (max_packet_size is not None and packet_size > int(max_packet_size)):
+                    continue
 
                 dst_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
 
@@ -189,6 +201,17 @@ def start_sniffing():
     dst_ip = data.get('dst_ip') # Get dest_ip from the request
     pcap_filename = data.get('pcap_filename')
     packet_types = data.get('packet_types', '[]')
+    min_packet_size = data.get('min_packet_size')
+    max_packet_size = data.get('max_packet_size')
+    if min_packet_size:
+        min_packet_size = int(min_packet_size)
+    else:
+        min_packet_size = None
+    if max_packet_size:
+        max_packet_size = int(max_packet_size)
+    else:
+        max_packet_size = None 
+        
     if not is_sniffing:
         is_sniffing = True
         packet_data = []
@@ -206,7 +229,7 @@ def start_sniffing():
             protocols.add(2054)  # ARP
         if packet_types == []: 
             protocols = {1, 6, 17, 2054} #all
-        sniffing_thread = threading.Thread(target=sniff_packets, args=(protocols, src_ip, dst_ip, pcap_filename,))
+        sniffing_thread = threading.Thread(target=sniff_packets, args=(protocols, src_ip, dst_ip, pcap_filename, min_packet_size, max_packet_size))
         sniffing_thread.start()
         status_message = f"Sniffing started with source IP: {src_ip or 'any'}, destination IP: {dst_ip or 'any'} and packet type: {packet_types}"
         return jsonify({"status": status_message})
@@ -237,7 +260,7 @@ def get_top_talkers():
 # Argument parser to specify protocols and source IP filter
 def main():
     # Start the app
-    app.run(debug=True, use_reloader=False)
+    socketio.run(app, debug=True, use_reloader=False)
 
 if __name__ == '__main__':
     # suppress Flask’s built-in development server

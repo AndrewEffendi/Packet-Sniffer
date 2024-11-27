@@ -26,7 +26,7 @@ A simple packet sniffer built using Python and Flask that captures and displays 
 2. Install the required packages:
 
    ```bash
-   pip install flask
+   sudo pip install flask
    ```
 ## Usage
 ### Run the packet sniffer with `sudo` access:
@@ -42,6 +42,8 @@ http://127.0.0.1:5000/
 - `Source IP Address`: Specify a source IP address to filter the packets. (Default: ANY)
 - `Destination IP Address`: Specify a target IP address to filter the packets. (Default: ANY)
 - `Packet Type`: Choose from options: `icmp`, `tcp`, `udp`, `arp`. Multiple protocols can be chosen. (Default: ALL)
+- `Minimum Packet Size`: Specify the minimum packet size in bytes to filter the packets. (Default: No minimum)
+- `Maximum Packet Size`: Specify the maximum packet size in bytes to filter the packets. (Default: No maximum)
 
 ### Choose PCAP Filename (Optional)
 - `PCAP Filename`: Specify the name of the pcap file, without the `.pcap` extension (Default: `captured_packets`)

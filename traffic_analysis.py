@@ -1,8 +1,10 @@
 import time
 from flask import jsonify
+from flask_socketio import SocketIO, emit
 
 class TrafficAnalyzer:
-    def __init__(self):
+    def __init__(self,socketio):
+        self.socketio = socketio
         self.reset_stats()
 
     def reset_stats(self):
@@ -22,16 +24,32 @@ class TrafficAnalyzer:
             'senders': {},    # {ip: {'bytes': 0, 'packets': 0}}
             'receivers': {}   # {ip: {'bytes': 0, 'packets': 0}}
         }
+        self.packet_sizes_per_second = 0
+        self.last_updated_second = 0
+
 
     def start_capture(self, timestamp):
         """Initialize capture start time"""
         self.start_time = timestamp
         self.last_bandwidth_check = time.time()
 
-    def update_bandwidth_stats(self, packet_size):
+    def update_bandwidth_stats(self, packet_size, elapsed_time):
         """Update bandwidth-related statistics"""
         self.total_bytes += packet_size
         self.bytes_since_last_check += packet_size
+        # sum packet size as per second
+        current_second = int(elapsed_time)
+        if current_second != self.last_updated_second :
+            # last_total_packet_sizes = self.packet_sizes_per_second
+            self.socketio.emit('throughput_update', {'throughput': self.packet_sizes_per_second})
+            print("123")
+            self.packet_sizes_per_second = packet_size
+            self.last_updated_second = current_second
+            #return last_total_packet_sizes
+        else:
+            self.packet_sizes_per_second += packet_size
+        #return None
+
 
     def update_protocol_stats(self, protocol):
         """Update protocol counter"""
@@ -75,7 +93,8 @@ class TrafficAnalyzer:
             self.last_bandwidth_check = current_time
         else:
             time_diff = current_time - self.last_bandwidth_check
-            if time_diff > 0:
+            # use >=1 to increase the accuracy of average throughput per second
+            if time_diff >= 1:  
                 throughput = self.bytes_since_last_check / time_diff
                 self.bytes_since_last_check = 0
                 self.last_bandwidth_check = current_time
