@@ -231,6 +231,7 @@ def start_sniffing():
             protocols = {1, 6, 17, 2054} #all
         sniffing_thread = threading.Thread(target=sniff_packets, args=(protocols, src_ip, dst_ip, pcap_filename, min_packet_size, max_packet_size))
         sniffing_thread.start()
+        traffic_analyzer.start_emission() 
         status_message = f"Sniffing started with source IP: {src_ip or 'any'}, destination IP: {dst_ip or 'any'} and packet type: {packet_types}"
         return jsonify({"status": status_message})
     return jsonify({"status": "Sniffing already running"})
@@ -241,6 +242,7 @@ def stop_sniffing():
     if is_sniffing:
         is_sniffing = False
         sniffing_thread.join()
+        traffic_analyzer.stop_emission()
         return jsonify({"status": "Sniffing stopped"})
     return jsonify({"status": "Sniffing was not running"})
 

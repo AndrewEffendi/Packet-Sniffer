@@ -113,26 +113,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Throughput Line Chart initialization
-let chart_interval = 10;
 let throughputChart = null;
-let throughputData = new Array(chart_interval).fill(null); // Pre-fill
-let timestamps = Array.from({ length: chart_interval }, (_, i) => i);
-let totalSeconds = 0; // Latest seconds
 
 // Monitor the update
 socket.on('throughput_update', (data) => {
-    const currentThroughput = data.throughput;
-
-    // Update the new data in the chart
-    if (totalSeconds < chart_interval) {
-        throughputData[totalSeconds] = currentThroughput; // Update the current second
-    } else {
-        // Shift the data to the left if we exceed chart_interval seconds
-        throughputData.shift(); // Remove the oldest data point
-        throughputData.push(currentThroughput); // Add the new data point
-        timestamps.shift();
-        timestamps.push(totalSeconds)
-    }
+    throughputData = data.throughput_data; 
+    timestamps = data.timestamp; 
+    console.log(timestamps)
 
     // Update chart
     const ctx = document.getElementById('throughputChart').getContext('2d');
@@ -190,8 +177,6 @@ socket.on('throughput_update', (data) => {
             }
         }
     });
-
-    totalSeconds++;
     
     // Hide the chart if there is no data
     if (throughputData.every(value => value === null)) {
