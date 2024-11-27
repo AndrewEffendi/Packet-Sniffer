@@ -70,11 +70,44 @@ def build_IPv4_overview(raw_data, index, formatted_elapsed_time):
         
     # Check protocol type
     if proto == 1:  # ICMP
+        packet_overview['protocol_type'] = 'ICMP'
         packet_overview['protocol_name'] = 'ICMP'
     elif proto == 6:  # TCP
+        packet_overview['protocol_type'] = 'TCP'
         packet_overview['protocol_name'] = 'TCP'
     elif proto == 17:  # UDP
-        packet_overview['protocol_name'] = 'UDP'
+        packet_overview['protocol_type'] = 'UDP'
+        src_port, dst_port, length, checksum, data = unpack_utils.udp_segment(data)
+        if dst_port == 53 or src_port == 53:
+            packet_overview['protocol_name'] = 'DNS (UDP)'
+        elif dst_port == 67 or src_port == 67 or dst_port == 68 or src_port == 68:
+            packet_overview['protocol_name'] = 'DHCP/BOOTP (UDP)'
+        elif dst_port == 69 or src_port == 69:
+            packet_overview['protocol_name'] = 'TFTP (UDP)'
+        elif dst_port == 123 or src_port == 123:
+            packet_overview['protocol_name'] = 'NTP (UDP)'
+        elif dst_port == 161 or dst_port == 162 or src_port == 161 or src_port == 162:
+            packet_overview['protocol_name'] = 'SNMP (UDP)'
+        elif dst_port == 443 or src_port == 443:
+            packet_overview['protocol_name'] = 'QUIC (UDP)'
+        elif dst_port == 500 or src_port == 500:
+            packet_overview['protocol_name'] = 'IKE (UDP)'
+        elif dst_port == 1701 or src_port == 1701:
+            packet_overview['protocol_name'] = 'L2TP (UDP)'
+        elif dst_port == 1812 or dst_port == 1813 or src_port == 1812 or src_port == 1813:
+            packet_overview['protocol_name'] = 'RADIUS (UDP)'
+        elif dst_port == 1900 or src_port == 1900:
+            packet_overview['protocol_name'] = 'SSDP (UDP)'
+        elif dst_port == 4789 or src_port == 4789:
+            packet_overview['protocol_name'] = 'VXLAN (UDP)'
+        elif dst_port == 5060 or dst_port == 5061 or src_port == 5060 or src_port == 5061:
+            packet_overview['protocol_name'] = 'SIP (UDP)'
+        elif dst_port == 5353 or src_port == 5353:
+            packet_overview['protocol_name'] = 'mDNS (UDP)'
+        elif dst_port == 5683 or src_port == 5683:
+            packet_overview['protocol_name'] = 'CoAP (UDP)'
+        else:
+            packet_overview['protocol_name'] = 'UDP (Unrecognized)'
     
     packet_overview['source'] = src_ip
     packet_overview['destination'] = dst_ip

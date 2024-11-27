@@ -62,7 +62,7 @@ function renderTable(data, detail) {
         
         let protocolClass = 'other';
         if (packet.protocol_name) {
-            protocolClass = packet.protocol_name.toLowerCase().trim();
+            protocolClass = packet.protocol_type.toLowerCase().trim();
         }
         row.className = `protocol-${protocolClass}`;
         
