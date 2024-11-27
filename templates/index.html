@@ -5,55 +5,67 @@
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-    <h1>Packet Sniffer</h1>
+    <header>
+        <h1>Packet Sniffer</h1>
+    </header>
     <div class="container">
-        <div class="input-group">
-            <label for="src_ip">Source IP Address:</label><br>
-            <input type="text" id="src_ip" name="src_ip" placeholder="e.g., 192.168.1.1">
+        <p class="hint">Optionally enter parameters to filter the packet sniffing process, then click "Start Sniffing" to begin.</p>
+        <div class="input-row">
+            <div class="input-group">
+                <label for="src_ip">Source IP Address (Default: ANY):</label>
+                <input type="text" id="src_ip" name="src_ip" placeholder="e.g., 192.168.1.1">
+            </div>
+            <div class="input-group">
+                <label for="dst_ip">Destination IP Address (Default: ANY):</label>
+                <input type="text" id="dst_ip" name="dst_ip" placeholder="e.g., 192.168.1.1">
+            </div>
         </div>
         <div class="input-group">
-            <label for="dst_ip">Destination IP Address:</label><br>
-            <input type="text" id="dst_ip" name="dst_ip" placeholder="e.g., 192.168.1.1">
+            <label>Packet Type:</label>
+            <div class="checkbox-group">
+                <input type="checkbox" id="select_all" name="select_all" onclick="toggleAllCheckboxes(this)" checked> All
+                <input type="checkbox" id="icmp" name="packet_type" value="icmp" checked> ICMP
+                <input type="checkbox" id="tcp" name="packet_type" value="tcp" checked> TCP
+                <input type="checkbox" id="udp" name="packet_type" value="udp" checked> UDP
+                <input type="checkbox" id="arp" name="packet_type" value="arp" checked> ARP
+            </div>
+        </div>
+        <div class="input-row">
+            <div class="input-group">
+                <label for="min_packet_size">Minimum Packet Size (bytes):</label>
+                <input type="number" id="min_packet_size" name="min_packet_size" placeholder="e.g., 64">
+            </div>
+            <div class="input-group">
+                <label for="max_packet_size">Maximum Packet Size (bytes):</label>
+                <input type="number" id="max_packet_size" name="max_packet_size" placeholder="e.g., 1500">
+            </div>
         </div>
         <div class="input-group">
-            <label>Packet Type:</label><br>
-            <input type="checkbox" id="select_all" name="select_all" onclick="toggleAllCheckboxes(this)" checked> All<br>
-            <input type="checkbox" id="icmp" name="packet_type" value="icmp" checked> ICMP<br>
-            <input type="checkbox" id="tcp" name="packet_type" value="tcp" checked> TCP<br>
-            <input type="checkbox" id="udp" name="packet_type" value="udp" checked> UDP<br>
-            <input type="checkbox" id="arp" name="packet_type" value="arp" checked> ARP<br>
+            <label for="pcap_filename">PCAP Filename:</label>
+            <div class="pcap-input">
+                <input type="text" id="pcap_filename" name="pcap_filename" placeholder="captured_packets">
+                <span>.pcap</span>
+            </div>
         </div>
-        <div class="input-group">
-            <label for="min_packet_size">Minimum Packet Size (bytes):</label><br>
-            <input type="number" id="min_packet_size" name="min_packet_size" placeholder="e.g., 64">
+        <div class="button-group">
+            <button class="clear-btn" onclick="clearInputs()">Clear Input</button>
+            <button class="start-btn" onclick="sendStartRequest()">Start Sniffing</button>
+            <button class="stop-btn" onclick="sendStopRequest()">Stop Sniffing</button>
         </div>
-        <div class="input-group">
-            <label for="max_packet_size">Maximum Packet Size (bytes):</label><br>
-            <input type="number" id="max_packet_size" name="max_packet_size" placeholder="e.g., 1500">
-        </div>
-        <button class="clear-btn" onclick="clearInputs()">Clean Input</button>
-        <div class="input-group">
-            <label for="pcap_filename">PCAP Filename:</label><br>
-            <input type="text" id="pcap_filename" name="pcap_filename" placeholder="captured_packets">
-            .pcap
-        </div>
-        <button class="start-btn" onclick="sendStartRequest()">Start Sniffing</button>
-        <button class="stop-btn" onclick="sendStopRequest()">Stop Sniffing</button>
-    </div>
+    <h2>Network Statistics</h2>
     <div class="bandwidth-info">
         <p>Total Captured Packets: <span id="total-packets">0</span></p>
         <p>Total Captured Size: <span id="total-bytes">0 B</span></p>
         <p>Current Throughput: <span id="current-throughput">0 B/s</span></p>
     </div>
     <div class="chart-wrapper">
-        <div class="protocol-stats">
-            <div class="chart-container">
+        <div class="chart-container">
+            <div class="protocol-stats">
                 <canvas id="protocolChart"></canvas>
             </div>
         </div>
-        <div class="Update_line_chart">
-            <h2>Real-time Throughput</h2>
-            <div class="chart-container">
+        <div class="chart-container">
+            <div class="Update_line_chart">
                 <canvas id="throughputChart"></canvas>
             </div>
         </div>
@@ -91,9 +103,9 @@
             </table>
         </div>
     </div>
-    <h1>Potential Threats</h1>
+    <h2>Potential Threats</h2>
     <div id="threatLog"></div>
-    <h1>Captured Packets</h1>
+    <h2>Captured Packets</h2>
     <div class="packets-control">
         <div class="page-size-control">
             <label for="pageSize">Packets per page:</label>
@@ -159,8 +171,10 @@
     
     <script>
         function clearInputs() {
-            document.getElementById('min_packet_size').value = ''; // Clean packet size
-            document.getElementById('max_packet_size').value = ''; 
+            const inputs = document.querySelectorAll('input[type="text"], input[type="number"]');
+            inputs.forEach(input => {
+                input.value = ''; // Set each input's value to an empty string
+            });
         }
     </script>
 </body>
