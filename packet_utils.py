@@ -1,6 +1,9 @@
 import unpack_utils
 
 def build_packet_info(raw_data):
+    """
+    Parses raw packet data and extracts detailed information about Ethernet, IPv4, and supported protocols.
+    """
     dst_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
     packet_info = [
         f'<strong>Ethernet Frame:</strong>',
@@ -64,6 +67,9 @@ def build_packet_info(raw_data):
     return packet_info
 
 def build_IPv4_overview(raw_data, index, formatted_elapsed_time):
+    """
+    Extracts an overview of an IPv4 packet, including protocol type, source and destination, and elapsed time.
+    """
     dst_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
     version, header_length, ttl, proto, src_ip, dst_ip, data = unpack_utils.ipv4_packet(data)
     packet_overview = {}
@@ -117,6 +123,9 @@ def build_IPv4_overview(raw_data, index, formatted_elapsed_time):
     return packet_overview
 
 def build_ARP_overview(raw_data, index, formatted_elapsed_time):
+    """
+    Extracts an overview of an ARP packet, including source, destination, and elapsed time.
+    """
     dst_mac, src_mac, eth_proto, data = unpack_utils.ethernet_frame(raw_data)
     packet_overview = {}
 

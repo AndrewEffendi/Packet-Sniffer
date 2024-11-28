@@ -20,6 +20,7 @@ is_sniffing = False
 packet_type = "all"  # Global variable to store the packet type (default: all)
 start_time = -1
 traffic_analyzer = TrafficAnalyzer()
+
 # Store packet data
 packet_data = []
 packet_detail = []
@@ -30,12 +31,16 @@ DEFAULT_PCAP_FILENAME = 'captured_packets'
 
 
 def update_packet_detail(raw_data):
+    """
+    Update packet details for display in the web interface.
+    """
     packet_info = packet_utils.build_packet_info(raw_data)
-
-    # Append the current packet info to the list
     packet_detail.append('<br>'.join(packet_info))
 
 def update_packet_data(timestamp, raw_data):
+    """
+    Process and store packet metadata including elapsed time and size.
+    """
     global start_time
     packet_overview = {}
 
@@ -55,11 +60,9 @@ def update_packet_data(timestamp, raw_data):
     packet_size = len(raw_data)
     traffic_analyzer.update_bandwidth_stats(packet_size, elapsed_time)
 
-    # Initialize packet_overview with source, destination, protocol, and elapsed time
     if eth_proto == 0x0800:  # IPv4
         packet_overview = packet_utils.build_IPv4_overview(raw_data, index, formatted_elapsed_time)
         update_packet_detail(raw_data)
-        # Get IP addresses and update protocol stats
         version, header_length, ttl, proto, src_ip, dst_ip, data = unpack_utils.ipv4_packet(data)
         if proto == 6:
             traffic_analyzer.update_protocol_stats('TCP')
@@ -69,24 +72,22 @@ def update_packet_data(timestamp, raw_data):
             traffic_analyzer.update_protocol_stats('ICMP')
         else:
             traffic_analyzer.update_protocol_stats('Other')
-            
         traffic_analyzer.update_ip_stats(src_ip, dst_ip, packet_size)
-
     elif eth_proto == 0x0806:  # ARP
         packet_overview = packet_utils.build_ARP_overview(raw_data, index, formatted_elapsed_time)
         update_packet_detail(raw_data)
         traffic_analyzer.update_protocol_stats('ARP')
-        
-        # Get ARP addresses and update stats
         hw_type, proto_type, hw_size, proto_size, opcode, src_mac, src_ip, dst_mac, dst_ip, _ = unpack_utils.arp_packet(data)
         traffic_analyzer.update_ip_stats(src_ip, dst_ip, packet_size)
     else:
         traffic_analyzer.update_protocol_stats('Other')
     
-    # Append the current packet info to the list
     packet_data.append(packet_overview)
 
 def run_threat_detection_IPv4(proto, data, src_ip, dst_ip, timestamp):
+    """
+    Analyze IPv4 packets for potential threats like floods or scans.
+    """
     if proto == 1:  # ICMP
         icmp_type, code, checksum, data = unpack_utils.icmp_packet(data)
         packet_info = {
@@ -122,6 +123,9 @@ def run_threat_detection_IPv4(proto, data, src_ip, dst_ip, timestamp):
 
 # Main sniffer function
 def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename, min_packet_size=None, max_packet_size=None):
+    """
+    Capture and process packets with optional filters and save to PCAP.
+    """
     global is_sniffing, packet_type, start_time
     sniffer = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(0x0003))
 
@@ -179,17 +183,25 @@ def sniff_packets(protocols, src_ip_filter, dst_ip_filter, pcap_filename, min_pa
             print("Sniffing stopped.")
 
  
-# Web route to display captured packets
 @app.route('/')
 def index():
+    """
+    Render the main web interface of the packet sniffer.
+    """
     return render_template('index.html')
 
 @app.route('/packets')
 def packets():
+    """
+    Provide JSON of captured packets, details, and threat logs.
+    """
     return jsonify({'packets': packet_data, 'details': packet_detail, 'threats': threat_log})
 
 @app.route('/start', methods=['POST'])
 def start_sniffing():
+    """
+    Start packet sniffing with specified filters and configurations.
+    """
     global is_sniffing, sniffing_thread, packet_type, packet_data, packet_detail, threat_log
     data = request.get_json()
     src_ip = data.get('src_ip')  # Get src_ip from the request
@@ -232,6 +244,9 @@ def start_sniffing():
 
 @app.route('/stop', methods=['POST'])
 def stop_sniffing():
+    """
+    Stop packet sniffing and terminate the capturing thread.
+    """
     global is_sniffing
     if is_sniffing:
         is_sniffing = False
@@ -241,22 +256,36 @@ def stop_sniffing():
 
 @app.route('/bandwidth')
 def get_bandwidth():
+    """
+    Provide real-time bandwidth usage statistics.
+    """
     return jsonify(traffic_analyzer.get_bandwidth_stats(is_sniffing))
 
 @app.route('/protocol-stats')
 def get_protocol_stats():
+    """
+    Provide statistics on captured packets by protocol type.
+    """
     return jsonify(traffic_analyzer.get_protocol_stats())
 
 @app.route('/top-talkers')
 def get_top_talkers():
+    """
+    Provide statistics on top source and destination addresses.
+    """
     return jsonify(traffic_analyzer.get_top_talkers())
 
 @app.route('/Update_line_chart')
 def get_throughput_data(): 
+    """
+    Provide real-time throughput data for chart visualization.
+    """
     return jsonify(traffic_analyzer.get_throughput_data(is_sniffing))
 
-# Argument parser to specify protocols and source IP filter
 def main():
+    """
+    Initialize and run the Flask application.
+    """
     # Start the app
     app.run(debug=True, use_reloader=False)
 
