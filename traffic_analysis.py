@@ -199,17 +199,3 @@ class TrafficAnalyzer:
                 return f"{bytes:.2f} {unit}"
             bytes /= 1024
         return f"{bytes:.2f} TB"
-    
-    def start_emission(self):
-        """Start the emission thread"""
-        if not self.running:  # Only start if not already running
-            self.running = True
-            self.emission_thread = threading.Thread(target=self.emit_throughput_stats, daemon=True)
-            self.emission_thread.start()
-
-    def stop_emission(self):
-        """Stop the emission thread"""
-        if self.running:  # Only stop if it is running
-            self.running = False
-            if self.emission_thread is not None:
-                self.emission_thread.join()  # Wait for the thread to finish
