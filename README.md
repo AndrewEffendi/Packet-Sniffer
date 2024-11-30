@@ -12,6 +12,14 @@
 - [Project Structure](#project-structure)
 - [Code Structure](#code-structure)
 - [Contribution](#contribution)
+- [Analysis and Discussion](#analysis-and-discussion)
+  - [Implementation Challenges](#implementation-challenges)
+  - [Project Achievements](#project-achievements)
+  - [Areas for Improvement](#areas-for-improvement)
+- [Lessons Learned](#lessons-learned)
+  - [Technical Insights](#technical-insights)
+  - [Development Process](#development-process)
+- [Concluding Remarks](#concluding-remarks)
 
 ## Project Overview
 A simple packet sniffer built using Python and Flask that captures and displays network packets for specified protocols. The application captures Ethernet frames, extracts information for IPv4, ARP, ICMP, TCP, and UDP packets, and displays the captured packets in a web interface.
@@ -55,6 +63,14 @@ A simple packet sniffer built using Python and Flask that captures and displays 
 ## Contribution
 - Andrew Effendi  
 - Shanni Li
+   - User Interface Design and Implementation
+      - templates/index.html
+      - static/css/styles.css
+   - Traffic Analysis and Visualization
+      - traffic_analysis.py
+      - static/js/traffic_analysis_scripts.js
+      - sniffer.py
+   - Documentation
 
 ## Requirements
 
@@ -244,6 +260,59 @@ concept58/
 - `DOMContentLoaded Event`: Initialize all charts and start periodic updates
   - Sets up 1-second update intervals for all charts
   - Ensures continuous real-time data visualization
+
+## Analysis and Discussion
+
+### Implementation Challenges
+- Real-time packet processing and performance optimization
+- Concurrent handling of packet capture and web interface updates
+- Accurate protocol parsing and data extraction
+
+### Project Achievements
+- Successfully implemented real-time packet capture and analysis
+- Created an intuitive web interface for network monitoring
+- Developed effective threat detection mechanisms
+- Achieved reliable protocol parsing and visualization
+- Implemented efficient data storage and export capabilities
+
+### Areas for Improvement
+- Enhanced packet filtering capabilities
+- More sophisticated threat detection algorithms
+  - Adjustable detection thresholds
+  - Custom rule creation
+- Performance optimization for high-traffic networks
+- Cross-platform compatibility improvements
+
+## Lessons Learned
+
+### Technical Insights
+- Deep understanding of network protocols and packet structures
+  - Working with Ethernet frames, IPv4, ARP, ICMP, TCP, and UDP protocols
+  - Implementing protocol-specific packet parsing and analysis
+  - Understanding network header structures and encapsulation
+- Experience with real-time data processing and visualization
+- Knowledge of network security threats and detection methods
+  - Implementing SYN flood detection
+  - Detecting ICMP flood attacks
+  - Identifying port scanning activities
+- Skills in full-stack web development
+  - Flask backend development
+  - JavaScript frontend implementation
+  - Real-time data communication between frontend and backend
+- Practical experience with network programming
+  - Raw socket programming for packet capture
+  - PCAP file format handling
+  - Network traffic analysis and statistics
+
+### Development Process
+- Importance of modular code design for maintainability
+- Value of comprehensive testing in network applications
+- Need for efficient data structures in real-time processing
+- Benefits of clear documentation and code organization
+
+
+## Concluding Remarks
+This project successfully demonstrates the implementation of a functional packet sniffer with real-time analysis capabilities. While achieving its core objectives of packet capture, protocol analysis, and threat detection, the project also revealed various areas for potential improvement and future development. The experience gained through this implementation provides valuable insights into network programming, security monitoring, and full-stack application development.
 
 
 
