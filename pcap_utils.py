@@ -1,6 +1,9 @@
 import struct
 
 def write_pcap_global_header(file):
+    """
+    Writes the global header for a PCAP file to the given file object.
+    """
     global_header = struct.pack(
         'IHHIIII',
         0xa1b2c3d4,  # Magic number
@@ -14,6 +17,9 @@ def write_pcap_global_header(file):
     file.write(global_header)
 
 def write_pcap_packet(file, timestamp, captured_data):
+    """
+    Writes a packet with its timestamp and captured data to a PCAP file.
+    """
     ts_sec = int(timestamp)
     ts_usec = int((timestamp - ts_sec) * 1e6)
     packet_len = len(captured_data)
