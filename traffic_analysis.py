@@ -1,6 +1,5 @@
 import time
 from flask import jsonify
-import threading
 
 chart_interval = 100
 
@@ -163,7 +162,7 @@ class TrafficAnalyzer:
             self.throughputData.append(0)
             self.timestamps.append(len(self.timestamps))  
 
-        # subtitue previous array to 0, only need to check 20 elments since this will be triggered every second
+        # subtitue previous array to 0, only need to check part of elments since this will be triggered every second
         for i in range(current_second-1, max(-1,current_second-11), -1):
             if self.throughputData[i] is None:
                 self.throughputData[i] = 0
