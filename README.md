@@ -68,8 +68,8 @@ A simple packet sniffer built using Python and Flask that captures and displays 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/AndrewEffendi/concept58.git
-   cd concept58
+   git clone https://github.com/AndrewEffendi/Packet-Sniffer.git
+   cd Packet-Sniffer
    ```
 2. Install the required packages:
 
@@ -146,7 +146,7 @@ Potential port scan detected from 172.20.209.83 to 8.8.8.8
 
 ## Project Structure
 ```
-concept58/
+Packet-Sniffer/
 ├── sniffer.py           # Main application file
 ├── packet_utils.py      # Packet parsing utilities
 ├── unpack_utils.py      # Raw data unpacking utilities
