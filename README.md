@@ -61,8 +61,18 @@ A simple packet sniffer built using Python and Flask that captures and displays 
 - Real-time updates of network statistics
 
 ## Contribution
-- Andrew Effendi  
-- Shanni Li
+- **Andrew Effendi**
+   - Packet Sniffer, Utilities and Threat Detection
+      - sniffer.py
+      - static/js/script.js
+      - packet_utils.py
+      - unpack_utils.py
+      - pcap_utils.py
+      - threat_detection.py
+    - User Interface base template
+      - templates/index.html
+   - Documentation  
+- **Shanni Li**
    - User Interface Design and Implementation
       - templates/index.html
       - static/css/styles.css
