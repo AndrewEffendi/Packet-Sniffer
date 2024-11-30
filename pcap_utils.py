@@ -1,7 +1,7 @@
 import struct
 
 def write_pcap_global_header(file):
-     """
+    """
     Writes the global header for a PCAP file to the given file object.
     """
     global_header = struct.pack(
