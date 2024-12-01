@@ -14,7 +14,6 @@
 - [Contribution](#contribution)
 - [Analysis and Discussion](#analysis-and-discussion)
   - [Implementation Challenges](#implementation-challenges)
-  - [Project Achievements](#project-achievements)
   - [Areas for Improvement](#areas-for-improvement)
 - [Lessons Learned](#lessons-learned)
   - [Technical Insights](#technical-insights)
@@ -76,10 +75,11 @@ A simple packet sniffer built using Python and Flask that captures and displays 
    - User Interface Design and Implementation
       - templates/index.html
       - static/css/styles.css
+   - Filter packets by size
+      - sniffer.py   
    - Traffic Analysis and Visualization
       - traffic_analysis.py
       - static/js/traffic_analysis_scripts.js
-      - sniffer.py
    - Documentation
 
 ## Requirements
@@ -275,15 +275,10 @@ Packet-Sniffer/
 
 ### Implementation Challenges
 - Real-time packet processing and performance optimization
+   - Initially, we displayed all captured packets directly in the web UI without pagination. However, we found that the page became very sluggish when the packet count exceeded 4000. Therefore, we implemented pagination to control the number of packets rendered per page, which significantly improved performance
 - Concurrent handling of packet capture and web interface updates
+   - when doing the realtime throughout chart, tried to use threading with socketio to let backend notify frontend for periodic and instant updates but found it useless, we decided to stick on frontend fetch in the end with same periodic updates (every second) for more consistent visualization
 - Accurate protocol parsing and data extraction
-
-### Project Achievements
-- Successfully implemented real-time packet capture and analysis
-- Created an intuitive web interface for network monitoring
-- Developed effective threat detection mechanisms
-- Achieved reliable protocol parsing and visualization
-- Implemented efficient data storage and export capabilities
 
 ### Areas for Improvement
 - Enhanced packet filtering capabilities
@@ -301,6 +296,9 @@ Packet-Sniffer/
   - Implementing protocol-specific packet parsing and analysis
   - Understanding network header structures and encapsulation
 - Experience with real-time data processing and visualization
+  - Using Chart.js for network traffic visualization
+  - Managing continuous packet capture data updates
+  - Optimizing network monitoring interface
 - Knowledge of network security threats and detection methods
   - Implementing SYN flood detection
   - Detecting ICMP flood attacks
@@ -322,7 +320,7 @@ Packet-Sniffer/
 
 
 ## Concluding Remarks
-This project successfully demonstrates the implementation of a functional packet sniffer with real-time analysis capabilities. While achieving its core objectives of packet capture, protocol analysis, and threat detection, the project also revealed various areas for potential improvement and future development. The experience gained through this implementation provides valuable insights into network programming, security monitoring, and full-stack application development.
+This project successfully demonstrates the implementation of a functional packet sniffer with real-time analysis capabilities. While achieving its core objectives of packet capture, traffic analysis, and threat detection, the project also revealed various areas for potential improvement and future development. The experience gained through this implementation provides valuable insights into network programming, security monitoring, and full-stack application development.
 
 
 
