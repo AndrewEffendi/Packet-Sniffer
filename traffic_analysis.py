@@ -3,12 +3,48 @@ from flask import jsonify
 
 chart_interval = 100
 
+"""
+Traffic Analysis Module for Network Packet Sniffer
+
+This module provides real-time traffic analysis capabilities including:
+- Bandwidth monitoring and throughput calculation
+- Protocol distribution statistics
+- Top talkers identification
+- Network throughput visualization data
+
+The TrafficAnalyzer class maintains various statistics about network traffic
+and provides methods to update and retrieve these statistics in real-time.
+"""
+
 class TrafficAnalyzer:
+    """
+    A class to analyze and track network traffic statistics.
+    
+    Maintains running statistics about:
+    - Total bytes transferred
+    - Current throughput
+    - Protocol distribution
+    - IP-based statistics
+    - Real-time throughput data for visualization
+    
+    Attributes:
+        total_bytes (int): Total bytes captured
+        start_time (float): Capture start timestamp
+        protocol_counts (dict): Counter for each protocol type
+        ip_stats (dict): Statistics for sender and receiver IPs
+        throughputData (list): Throughput data points for visualization
+        timestamps (list): Timestamps for throughput data points
+    """
+
     def __init__(self):
+        """Initialize traffic analyzer with empty statistics."""
         self.reset_stats()
 
     def reset_stats(self):
-        """Reset all traffic statistics"""
+        """
+        Reset all traffic statistics to initial state.
+        Called at initialization and when starting new capture.
+        """
         self.total_bytes = 0
         self.start_time = -1
         self.last_bandwidth_check = None
@@ -27,14 +63,26 @@ class TrafficAnalyzer:
         self.throughputData = []
         self.timestamps = []
 
-
     def start_capture(self, timestamp):
-        """Initialize capture start time"""
+        """
+        Initialize capture start time and reset bandwidth check timer.
+        """
         self.start_time = timestamp
         self.last_bandwidth_check = time.time()
 
     def update_bandwidth_stats(self, packet_size, elapsed_time):
-        """Update bandwidth-related statistics"""
+        """
+        Update bandwidth statistics with new packet data.
+        
+        Args:
+            packet_size (int): Size of the captured packet in bytes
+            elapsed_time (float): Time elapsed since capture start
+            
+        Updates:
+            - Total bytes
+            - Per-second throughput data
+            - Running bandwidth calculations
+        """
         self.total_bytes += packet_size
         self.bytes_since_last_check += packet_size
 
@@ -51,14 +99,26 @@ class TrafficAnalyzer:
             self.throughputData[packet_second] = packet_size
 
     def update_protocol_stats(self, protocol):
-        """Update protocol counter"""
+        """
+        Update protocol distribution counter.
+        
+        Args:
+            protocol (str): Protocol name (TCP, UDP, ICMP, ARP, Other)
+        """
         if protocol in self.protocol_counts:
             self.protocol_counts[protocol] += 1
         else:
             self.protocol_counts['Other'] += 1
 
     def update_ip_stats(self, src_ip, dst_ip, packet_size):
-        """Update IP address statistics"""
+        """
+        Update statistics for source and destination IP addresses.
+        
+        Args:
+            src_ip (str): Source IP address
+            dst_ip (str): Destination IP address
+            packet_size (int): Size of the packet in bytes
+        """
         # Skip localhost addresses
         if src_ip == '127.0.0.1' or dst_ip == '127.0.0.1':
             return
@@ -76,7 +136,12 @@ class TrafficAnalyzer:
         self.ip_stats['receivers'][dst_ip]['packets'] += 1
 
     def get_bandwidth_stats(self, is_sniffing):
-        """Calculate and return bandwidth statistics"""
+        """
+        Calculate and return current bandwidth statistics.
+        
+        Args:
+            is_sniffing (bool): Whether packet capture is currently active
+        """
         current_time = time.time()
         
         if not is_sniffing or self.start_time == -1:
@@ -108,7 +173,9 @@ class TrafficAnalyzer:
         }
 
     def get_protocol_stats(self):
-        """Get protocol distribution statistics"""
+        """
+        Get protocol distribution statistics.
+        """
         total = sum(self.protocol_counts.values())
         if total == 0:
             percentages = {proto: 0 for proto in self.protocol_counts}
@@ -123,7 +190,15 @@ class TrafficAnalyzer:
         }
 
     def get_top_talkers(self, limit=5):
-        """Get top talkers statistics"""
+        """
+        Get statistics about top network talkers.
+        
+        Args:
+            limit (int): Number of top talkers to return (default: 5)
+            
+        Returns:
+            dict: Top senders and receivers with their statistics
+        """
         def get_top_ips(ip_dict):
             sorted_ips = sorted(ip_dict.items(), 
                               key=lambda x: x[1]['bytes'], 
@@ -140,8 +215,13 @@ class TrafficAnalyzer:
             'top_receivers': get_top_ips(self.ip_stats['receivers'])
         }
     
-    def get_throughput_data(self,is_sniffing):
-        """Get throughput data for the chart"""
+    def get_throughput_data(self, is_sniffing):
+        """
+        Get throughput data for visualization.
+        
+        Args:
+            is_sniffing (bool): Whether packet capture is currently active
+        """
         # process the data so that 0 for no packets for previous time, and none for future time
 
         if self.start_time == -1:
@@ -188,7 +268,6 @@ class TrafficAnalyzer:
                 'throughput_data': self.throughputData[-chart_interval:],
                 'timestamp': self.timestamps[-chart_interval:]
             }
-
 
     @staticmethod
     def format_bytes(bytes):

@@ -1,9 +1,9 @@
 // Protocol Chart initialization
 let protocolChart = null;
-
+// Function to update protocol chart    
 function updateProtocolChart() {
     fetch('/protocol-stats')
-        .then(response => response.json())
+        .then(response => response.json())  
         .then(data => {
             // Update total packets count
             document.getElementById('total-packets').textContent = data.total_packets;
@@ -70,6 +70,7 @@ function updateProtocolChart() {
         });
 }
 
+// Top Talkers Table update
 function updateTopTalkers() {
     fetch('/top-talkers')
         .then(response => response.json())
